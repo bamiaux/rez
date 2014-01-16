@@ -65,11 +65,11 @@ type lanczos struct {
 	taps float64
 }
 
-func (f *lanczos) Taps() int {
+func (f lanczos) Taps() int {
 	return int(f.taps)
 }
 
-func (f *lanczos) Get(x float64) float64 {
+func (f lanczos) Get(x float64) float64 {
 	if x > f.taps {
 		return 0
 	} else if x == 0 {
@@ -81,5 +81,5 @@ func (f *lanczos) Get(x float64) float64 {
 }
 
 func NewLanczosFilter(taps int) Filter {
-	return &lanczos{taps: float64(taps)}
+	return lanczos{taps: float64(taps)}
 }
