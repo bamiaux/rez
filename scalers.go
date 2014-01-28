@@ -8,18 +8,18 @@ const (
 	Bits = 14
 )
 
-func u8(x int) uint8 {
+func u8(x int) byte {
 	if x < 0 {
 		return 0
 	}
 	if x > 0xFF {
 		return 0xFF
 	}
-	return uint8(x)
+	return byte(x)
 }
 
 func h8scaleN(taps, width, height int, coeffs []int16, offsets []int,
-	dst, src []uint8, dpitch, spitch int) {
+	dst, src []byte, dpitch, spitch int) {
 	for y := 0; y < height; y++ {
 		c := coeffs
 		for x := range dst[:width] {
@@ -37,7 +37,7 @@ func h8scaleN(taps, width, height int, coeffs []int16, offsets []int,
 }
 
 func v8scaleN(taps, width, height int, coeffs []int16, offsets []int,
-	dst, src []uint8, dpitch, spitch int) {
+	dst, src []byte, dpitch, spitch int) {
 	for _, offset := range offsets {
 		src = src[spitch*offset:]
 		for x := range dst[:width] {
