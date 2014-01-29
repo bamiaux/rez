@@ -10,12 +10,14 @@ import (
 
 type Filter interface {
 	Taps() int
+	Name() string
 	Get(dx float64) float64
 }
 
 type bilinear struct{}
 
-func (bilinear) Taps() int { return 1 }
+func (bilinear) Taps() int    { return 1 }
+func (bilinear) Name() string { return "bilinear" }
 
 func (bilinear) Get(x float64) float64 {
 	if x < 1 {
@@ -34,6 +36,10 @@ type bicubic struct {
 
 func (bicubic) Taps() int {
 	return 2
+}
+
+func (bicubic) Name() string {
+	return "bicubic"
 }
 
 func (f *bicubic) Get(x float64) float64 {
@@ -67,6 +73,10 @@ type lanczos struct {
 
 func (f lanczos) Taps() int {
 	return int(f.taps)
+}
+
+func (lanczos) Name() string {
+	return "lanczos"
 }
 
 func (f lanczos) Get(x float64) float64 {
