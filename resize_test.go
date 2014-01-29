@@ -5,6 +5,7 @@
 package rez
 
 import (
+	"fmt"
 	"image"
 	_ "image/jpeg"
 	"image/png"
@@ -44,51 +45,44 @@ func writeImage(t *testing.T, name string, img image.Image) {
 	expect(t, err, nil)
 }
 
-func doubleWidth(t *testing.T, input, output string, filter Filter) {
+func resize(t *testing.T, w, h int, input, output string, filter Filter) {
 	src := readImage(t, input)
-	r := src.Bounds()
-	dst := image.NewYCbCr(image.Rect(0, 0, r.Dx()*2, r.Dy()),
-		image.YCbCrSubsampleRatio420)
-	_ = dst
-	for i := 0; i < 3; i++ {
-		w := r.Dx()
-		h := r.Dy()
-		if i > 0 {
-			w >>= 1
-			h >>= 1
-		}
-		cfg := Config{
-			depth:    8,
-			input:    w,
-			output:   w * 2,
-			vertical: false,
-		}
-		rez := NewResize(&cfg, filter)
-		sptr := src.Y
-		dptr := dst.Y
-		offset := src.YOffset
-		spitch := src.YStride
-		dpitch := dst.YStride
-		if i > 0 {
-			sptr = src.Cb
-			dptr = dst.Cb
-			offset = src.COffset
-			spitch = src.CStride
-			dpitch = dst.CStride
-		}
-		if i > 1 {
-			sptr = src.Cr
-			dptr = dst.Cr
-		}
-		sptr = sptr[offset(0, 0):]
-		dptr = dptr[offset(0, 0):]
-		rez.Resize(dptr, sptr, dpitch, spitch, w, h)
+	dst := image.NewYCbCr(image.Rect(0, 0, w, h), image.YCbCrSubsampleRatio420)
+	cfg := AdapterConfig{
+		Input: Descriptor{
+			Width:  src.Rect.Dx(),
+			Height: src.Rect.Dy(),
+			Ratio:  GetRatio(src.SubsampleRatio),
+		},
+		Output: Descriptor{
+			Width:  w,
+			Height: h,
+			Ratio:  GetRatio(dst.SubsampleRatio),
+		},
 	}
+	adapter, err := NewAdapter(&cfg, filter)
+	expect(t, err, nil)
+	err = adapter.Resize(dst, src)
+	expect(t, err, nil)
 	writeImage(t, output, dst)
 }
 
-func TestResizeWidth(t *testing.T) {
-	doubleWidth(t, "testdata/lenna.jpg", "testdata/lenna-bilinear.png", NewBilinearFilter())
-	doubleWidth(t, "testdata/lenna.jpg", "testdata/lenna-bicubic.png", NewBicubicFilter())
-	doubleWidth(t, "testdata/lenna.jpg", "testdata/lenna-lanczos.png", NewLanczosFilter(3))
+func TestResize(t *testing.T) {
+	filters := []Filter{
+		NewBilinearFilter(),
+		NewBicubicFilter(),
+		NewLanczosFilter(3),
+	}
+	sizes := []struct{ w, h int }{
+		{w: 128, h: 128},
+		{w: 256, h: 256},
+		{w: 720, h: 576},
+		{w: 1920, h: 1080},
+	}
+	for _, f := range filters {
+		for _, s := range sizes {
+			dst := fmt.Sprintf("testdata/output-%vx%v-%v.png", s.w, s.h, f.Name())
+			resize(t, s.w, s.h, "testdata/lenna.jpg", dst, f)
+		}
+	}
 }
