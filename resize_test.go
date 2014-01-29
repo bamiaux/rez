@@ -15,7 +15,11 @@ import (
 	"testing"
 )
 
-func expect(t *testing.T, a, b interface{}) {
+type Tester interface {
+	Fatalf(format string, args ...interface{})
+}
+
+func expect(t Tester, a, b interface{}) {
 	if reflect.DeepEqual(a, b) {
 		return
 	}
@@ -26,7 +30,7 @@ func expect(t *testing.T, a, b interface{}) {
 		typea, a, typeb, b)
 }
 
-func readImage(t *testing.T, name string) *image.YCbCr {
+func readImage(t Tester, name string) *image.YCbCr {
 	file, err := os.Open(name)
 	expect(t, err, nil)
 	defer file.Close()
@@ -37,7 +41,7 @@ func readImage(t *testing.T, name string) *image.YCbCr {
 	return yuv
 }
 
-func writeImage(t *testing.T, name string, img image.Image) {
+func writeImage(t Tester, name string, img image.Image) {
 	file, err := os.Create(name)
 	expect(t, err, nil)
 	defer file.Close()
@@ -45,7 +49,7 @@ func writeImage(t *testing.T, name string, img image.Image) {
 	expect(t, err, nil)
 }
 
-func resize(t *testing.T, dst, src *image.YCbCr, filter Filter) {
+func adapt(t Tester, dst, src *image.YCbCr, filter Filter) Adapter {
 	cfg := AdapterConfig{
 		Input: Descriptor{
 			Width:  src.Rect.Dx(),
@@ -60,11 +64,16 @@ func resize(t *testing.T, dst, src *image.YCbCr, filter Filter) {
 	}
 	adapter, err := NewAdapter(&cfg, filter)
 	expect(t, err, nil)
-	err = adapter.Resize(dst, src)
+	return adapter
+}
+
+func resize(t Tester, dst, src *image.YCbCr, filter Filter) {
+	adapter := adapt(t, dst, src, filter)
+	err := adapter.Resize(dst, src)
 	expect(t, err, nil)
 }
 
-func resizeFiles(t *testing.T, w, h int, input, output string, filter Filter) {
+func resizeFiles(t Tester, w, h int, input, output string, filter Filter) {
 	src := readImage(t, input)
 	dst := image.NewYCbCr(image.Rect(0, 0, w, h), image.YCbCrSubsampleRatio420)
 	resize(t, dst, src, filter)
@@ -80,6 +89,7 @@ var (
 )
 
 func TestResize(t *testing.T) {
+	t.Skip("skipping slow test")
 	sizes := []struct{ w, h int }{
 		{128, 128},
 		{256, 256},
@@ -109,3 +119,23 @@ func TestBoundaries(t *testing.T) {
 		}
 	}
 }
+
+func benchSpeed(b *testing.B, win, hin int, wout, hout int, filter Filter) {
+	raw := readImage(b, "testdata/lenna.jpg")
+	src := image.NewYCbCr(image.Rect(0, 0, win, hin), image.YCbCrSubsampleRatio420)
+	resize(b, src, raw, filter)
+	dst := image.NewYCbCr(image.Rect(0, 0, wout, hout), image.YCbCrSubsampleRatio420)
+	adapter := adapt(b, dst, src, filter)
+	b.SetBytes(int64(wout*hout*3) >> 1)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		adapter.Resize(dst, src)
+	}
+}
+
+func BenchmarkBilinearUp(b *testing.B)   { benchSpeed(b, 640, 480, 1920, 1080, NewBilinearFilter()) }
+func BenchmarkBilinearDown(b *testing.B) { benchSpeed(b, 1920, 1080, 640, 480, NewBilinearFilter()) }
+func BenchmarkBicubicUp(b *testing.B)    { benchSpeed(b, 640, 480, 1920, 1080, NewBicubicFilter()) }
+func BenchmarkBicubicDown(b *testing.B)  { benchSpeed(b, 1920, 1080, 640, 480, NewBicubicFilter()) }
+func BenchmarkLanczosUp(b *testing.B)    { benchSpeed(b, 640, 480, 1920, 1080, NewLanczosFilter(3)) }
+func BenchmarkLanczosDown(b *testing.B)  { benchSpeed(b, 1920, 1080, 640, 480, NewLanczosFilter(3)) }
