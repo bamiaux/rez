@@ -181,11 +181,12 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 	}
 	if size != 0 {
 		buffer := make([]byte, size)
-		last := buffer
+		idx := 0
 		for i := uint(0); i < maxPlanes; i++ {
 			if p := ctx.buffer[i]; p != nil {
-				p.Data = last
-				last = buffer[p.Pitch*p.Height:]
+				size := p.Pitch * p.Height
+				p.Data = buffer[idx : idx+size]
+				idx += size
 			}
 		}
 	}
