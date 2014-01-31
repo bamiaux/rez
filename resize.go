@@ -41,7 +41,7 @@ func NewResize(cfg *Config, filter Filter) Resizer {
 	return &ctx
 }
 
-func (c *Context) Resize(dst, src []byte, dpitch, spitch int, width, height int) {
+func (c *Context) Resize(dst, src []byte, width, height, dp, sp int) {
 	field := bin(c.cfg.Vertical && c.cfg.Interlaced)
 	dwidth := c.cfg.Output
 	dheight := height

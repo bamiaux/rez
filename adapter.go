@@ -233,7 +233,27 @@ func parse(data image.Image, plane uint, interlaced bool) (*Plane, error) {
 	return p, nil
 }
 
+func resizePlane(dst, src, buf *Plane, hrez, wrez Resizer) {
+	hdst := dst
+	wsrc := src
+	if hrez != nil && wrez != nil {
+		hdst = buf
+		wsrc = buf
+	}
+	if hrez != nil {
+		hrez.Resize(hdst.Data, src.Data, src.Width, src.Height, hdst.Pitch, src.Pitch)
+	}
+	if wrez != nil {
+		wrez.Resize(dst.Data, wsrc.Data, wsrc.Width, wsrc.Height, dst.Pitch, wsrc.Pitch)
+	}
+	if hrez == nil && wrez == nil {
+		copyPlane(dst.Data, src.Data, src.Width, src.Height, dst.Pitch, src.Pitch)
+	}
+}
+
 func (ctx *AdapterContext) Resize(output, input image.Image) error {
+	srcs := [maxPlanes]*Plane{}
+	dsts := [maxPlanes]*Plane{}
 	for i := uint(0); i < maxPlanes; i++ {
 		src, err := parse(input, i, ctx.Input.Interlaced)
 		if err != nil {
@@ -243,23 +263,11 @@ func (ctx *AdapterContext) Resize(output, input image.Image) error {
 		if err != nil {
 			return err
 		}
-		hrez := ctx.hrez[i]
-		wrez := ctx.wrez[i]
-		hdst := dst
-		wsrc := src
-		if hrez != nil && wrez != nil {
-			hdst = ctx.buffer[i]
-			wsrc = ctx.buffer[i]
-		}
-		if hrez != nil {
-			hrez.Resize(hdst.Data, src.Data, hdst.Pitch, src.Pitch, src.Width, src.Height)
-		}
-		if wrez != nil {
-			wrez.Resize(dst.Data, wsrc.Data, dst.Pitch, wsrc.Pitch, wsrc.Width, wsrc.Height)
-		}
-		if hrez == nil && wrez == nil {
-			copyPlane(dst.Data, src.Data, src.Width, src.Height, dst.Pitch, src.Pitch)
-		}
+		srcs[i] = src
+		dsts[i] = dst
+	}
+	for i := uint(0); i < maxPlanes; i++ {
+		resizePlane(dsts[i], srcs[i], ctx.buffer[i], ctx.hrez[i], ctx.wrez[i])
 	}
 	return nil
 }
