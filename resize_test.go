@@ -157,6 +157,8 @@ var (
 		{1920, 1080, 640, 480, false, NewLanczosFilter(3)},
 		{640, 480, 1920, 1080, true, NewBicubicFilter()},
 		{640, 480, 1920, 1080, true, NewBicubicFilter()},
+		{512, 512, 512, 512, true, NewBilinearFilter()},
+		{512, 512, 512, 512, true, NewLanczosFilter(3)},
 	}
 )
 
@@ -181,3 +183,7 @@ func BenchmarkBicubicDown(b *testing.B)  { benchSpeed(b, benchs[4]) }
 func BenchmarkLanczosDown(b *testing.B)  { benchSpeed(b, benchs[5]) }
 func BenchmarkBicubicIUp(b *testing.B)   { benchSpeed(b, benchs[6]) }
 func BenchmarkBicubicIDown(b *testing.B) { benchSpeed(b, benchs[7]) }
+
+// filter should not matter
+func BenchmarkBicubicCopy(b *testing.B) { benchSpeed(b, benchs[8]) }
+func BenchmarkLanczosCopy(b *testing.B) { benchSpeed(b, benchs[9]) }
