@@ -18,36 +18,46 @@ func u8(x int) byte {
 	return byte(x)
 }
 
-func h8scaleN(taps, width, height int, coeffs []int16, offsets []int,
-	dst, src []byte, dpitch, spitch int) {
+func copyPlane(dst, src []byte, width, height, dp, sp int) {
+	dst_idx := 0
+	src_idx := 0
 	for y := 0; y < height; y++ {
-		c := coeffs
+		copy(dst[dst_idx:dst_idx+width], src[src_idx:src_idx+width])
+		dst_idx += dp
+		src_idx += sp
+	}
+}
+
+func h8scaleN(dst, src []byte, cof []int16, off []int,
+	taps, width, height, dp, sp int) {
+	for y := 0; y < height; y++ {
+		c := cof
 		for x := range dst[:width] {
-			offset := offsets[x]
+			xoff := off[x]
 			pix := 0
-			for i, d := range src[offset : offset+taps] {
+			for i, d := range src[xoff : xoff+taps] {
 				pix += int(d) * int(c[i])
 			}
 			dst[x] = u8((pix + 1<<(Bits-1)) >> Bits)
 			c = c[taps:]
 		}
-		src = src[spitch:]
-		dst = dst[dpitch:]
+		src = src[sp:]
+		dst = dst[dp:]
 	}
 }
 
-func v8scaleN(taps, width, height int, coeffs []int16, offsets []int,
-	dst, src []byte, dpitch, spitch int) {
-	for _, offset := range offsets {
-		src = src[spitch*offset:]
+func v8scaleN(dst, src []byte, cof []int16, off []int,
+	taps, width, height, dp, sp int) {
+	for _, yoff := range off[:height] {
+		src = src[sp*yoff:]
 		for x := range dst[:width] {
 			pix := 0
-			for i, c := range coeffs[:taps] {
-				pix += int(src[spitch*i+x]) * int(c)
+			for i, c := range cof[:taps] {
+				pix += int(src[sp*i+x]) * int(c)
 			}
 			dst[x] = u8((pix + 1<<(Bits-1)) >> Bits)
 		}
-		coeffs = coeffs[taps:]
-		dst = dst[dpitch:]
+		cof = cof[taps:]
+		dst = dst[dp:]
 	}
 }

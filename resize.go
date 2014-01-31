@@ -13,11 +13,11 @@ type Config struct {
 }
 
 type Resizer interface {
-	Resize(dst, src []byte, dpitch, spitch int, width, height int)
+	Resize(dst, src []byte, width, height, dstPitch, srcPitch int)
 }
 
-type Scaler func(taps, width, height int, coeffs []int16, offset []int,
-	dst, src []byte, dpitch, spitch int)
+type Scaler func(dst, src []byte, cof []int16, off []int,
+	taps, width, height, dstPitch, srcPitch int)
 
 type Context struct {
 	cfg     Config
@@ -50,7 +50,7 @@ func (c *Context) Resize(dst, src []byte, dpitch, spitch int, width, height int)
 		dheight = c.cfg.output >> field
 	}
 	for i, k := range c.kernels[:1+field] {
-		c.scaler(k.size, dwidth, dheight, k.coeffs, k.offsets,
-			dst[dpitch*i:], src[spitch*i:], dpitch<<field, spitch<<field)
+		c.scaler(dst[dpitch*i:], src[spitch*i:], k.coeffs, k.offsets,
+			k.size, dwidth, dheight, dpitch<<field, spitch<<field)
 	}
 }
