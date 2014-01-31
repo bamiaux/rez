@@ -212,16 +212,23 @@ func GetRatio(value image.YCbCrSubsampleRatio) ChromaRatio {
 	return Ratio444
 }
 
-func parse(data image.Image, plane uint, interlaced bool) (*Plane, error) {
+func parseYuv(data image.Image, interlaced bool) (*image.YCbCr, *Descriptor, error) {
 	yuv, ok := data.(*image.YCbCr)
 	if !ok {
-		return nil, fmt.Errorf("unsupported image format")
+		return nil, nil, fmt.Errorf("unsupported image format")
 	}
-	d := Descriptor{
+	return yuv, &Descriptor{
 		Width:      yuv.Rect.Dx(),
 		Height:     yuv.Rect.Dy(),
 		Ratio:      GetRatio(yuv.SubsampleRatio),
 		Interlaced: interlaced,
+	}, nil
+}
+
+func parse(data image.Image, plane uint, interlaced bool) (*Plane, error) {
+	yuv, d, err := parseYuv(data, interlaced)
+	if err != nil {
+		return nil, err
 	}
 	p := &Plane{
 		Width:  d.GetWidth(plane),
@@ -282,4 +289,24 @@ func (ctx *ConverterContext) Convert(output, input image.Image) error {
 	}
 	group.Wait()
 	return nil
+}
+
+func Convert(output, input image.Image, filter Filter) error {
+	_, src, err := parseYuv(input, false)
+	if err != nil {
+		return err
+	}
+	_, dst, err := parseYuv(output, false)
+	if err != nil {
+		return err
+	}
+	cfg := ConverterConfig{
+		Input:  *src,
+		Output: *dst,
+	}
+	converter, err := NewConverter(&cfg, filter)
+	if err != nil {
+		return err
+	}
+	return converter.Convert(output, input)
 }

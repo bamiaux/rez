@@ -78,7 +78,8 @@ func convert(t Tester, dst, src *image.YCbCr, interlaced bool, filter Filter) {
 func convertFiles(t Tester, w, h int, input, output string, filter Filter) {
 	src := readImage(t, input)
 	dst := image.NewYCbCr(image.Rect(0, 0, w, h), image.YCbCrSubsampleRatio420)
-	convert(t, dst, src, false, filter)
+	err := Convert(dst, src, filter)
+	expect(t, err, nil)
 	writeImage(t, output, dst)
 }
 
