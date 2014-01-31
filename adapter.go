@@ -221,14 +221,14 @@ func parse(data image.Image, plane uint, interlaced bool) (*Plane, error) {
 	}
 	switch plane {
 	case 0:
-		p.Data = yuv.Y[yuv.YOffset(0, 0):]
 		p.Pitch = yuv.YStride
+		p.Data = yuv.Y[yuv.YOffset(0, 0) : p.Pitch*p.Height]
 	case 1:
-		p.Data = yuv.Cb[yuv.COffset(0, 0):]
 		p.Pitch = yuv.CStride
+		p.Data = yuv.Cb[yuv.COffset(0, 0) : p.Pitch*p.Height]
 	case 2:
-		p.Data = yuv.Cr[yuv.COffset(0, 0):]
 		p.Pitch = yuv.CStride
+		p.Data = yuv.Cr[yuv.COffset(0, 0) : p.Pitch*p.Height]
 	}
 	return p, nil
 }
