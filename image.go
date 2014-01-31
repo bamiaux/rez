@@ -11,8 +11,8 @@ import (
 	"sync"
 )
 
-type Adapter interface {
-	Resize(dst, src image.Image) error
+type Converter interface {
+	Convert(dst, src image.Image) error
 }
 
 type ChromaRatio int
@@ -95,7 +95,7 @@ func (d *Descriptor) GetHeight(plane uint) int {
 	panic(fmt.Errorf("invalid ratio %v", d.Ratio))
 }
 
-type AdapterConfig struct {
+type ConverterConfig struct {
 	Input   Descriptor
 	Output  Descriptor
 	Threads int
@@ -112,8 +112,8 @@ type Plane struct {
 	Pitch  int
 }
 
-type AdapterContext struct {
-	AdapterConfig
+type ConverterContext struct {
+	ConverterConfig
 	wrez   [maxPlanes]Resizer
 	hrez   [maxPlanes]Resizer
 	buffer [maxPlanes]*Plane
@@ -130,7 +130,7 @@ func align(value, align int) int {
 	return (value + align - 1) & -align
 }
 
-func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
+func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 	if err := cfg.Input.Check(); err != nil {
 		return nil, err
 	}
@@ -145,8 +145,8 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 	if cfg.Threads == 0 {
 		cfg.Threads = runtime.GOMAXPROCS(0)
 	}
-	ctx := &AdapterContext{
-		AdapterConfig: *cfg,
+	ctx := &ConverterContext{
+		ConverterConfig: *cfg,
 	}
 	size := 0
 	for i := uint(0); i < maxPlanes; i++ {
@@ -260,7 +260,7 @@ func resizePlane(group *sync.WaitGroup, dst, src, buf *Plane, hrez, wrez Resizer
 	}
 }
 
-func (ctx *AdapterContext) Resize(output, input image.Image) error {
+func (ctx *ConverterContext) Convert(output, input image.Image) error {
 	srcs := [maxPlanes]*Plane{}
 	dsts := [maxPlanes]*Plane{}
 	for i := uint(0); i < maxPlanes; i++ {

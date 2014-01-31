@@ -49,8 +49,8 @@ func writeImage(t Tester, name string, img image.Image) {
 	expect(t, err, nil)
 }
 
-func adapt(t Tester, dst, src *image.YCbCr, interlaced bool, filter Filter) Adapter {
-	cfg := AdapterConfig{
+func prepare(t Tester, dst, src *image.YCbCr, interlaced bool, filter Filter) Converter {
+	cfg := ConverterConfig{
 		Input: Descriptor{
 			Width:      src.Rect.Dx(),
 			Height:     src.Rect.Dy(),
@@ -64,21 +64,21 @@ func adapt(t Tester, dst, src *image.YCbCr, interlaced bool, filter Filter) Adap
 			Interlaced: interlaced,
 		},
 	}
-	adapter, err := NewAdapter(&cfg, filter)
+	converter, err := NewConverter(&cfg, filter)
 	expect(t, err, nil)
-	return adapter
+	return converter
 }
 
-func resize(t Tester, dst, src *image.YCbCr, interlaced bool, filter Filter) {
-	adapter := adapt(t, dst, src, interlaced, filter)
-	err := adapter.Resize(dst, src)
+func convert(t Tester, dst, src *image.YCbCr, interlaced bool, filter Filter) {
+	converter := prepare(t, dst, src, interlaced, filter)
+	err := converter.Convert(dst, src)
 	expect(t, err, nil)
 }
 
-func resizeFiles(t Tester, w, h int, input, output string, filter Filter) {
+func convertFiles(t Tester, w, h int, input, output string, filter Filter) {
 	src := readImage(t, input)
 	dst := image.NewYCbCr(image.Rect(0, 0, w, h), image.YCbCrSubsampleRatio420)
-	resize(t, dst, src, false, filter)
+	convert(t, dst, src, false, filter)
 	writeImage(t, output, dst)
 }
 
@@ -90,7 +90,7 @@ var (
 	}
 )
 
-func TestResize(t *testing.T) {
+func TestConvert(t *testing.T) {
 	t.Skip("skipping slow test")
 	sizes := []struct{ w, h int }{
 		{128, 128},
@@ -101,7 +101,7 @@ func TestResize(t *testing.T) {
 	for _, f := range filters {
 		for _, s := range sizes {
 			dst := fmt.Sprintf("testdata/output-%vx%v-%v.png", s.w, s.h, f.Name())
-			resizeFiles(t, s.w, s.h, "testdata/lenna.jpg", dst, f)
+			convertFiles(t, s.w, s.h, "testdata/lenna.jpg", dst, f)
 		}
 	}
 }
@@ -115,13 +115,13 @@ func testBoundariesWith(t *testing.T, interlaced bool) {
 	}
 	for _, f := range filters {
 		tmp := image.NewYCbCr(image.Rect(0, 0, 256, 256), image.YCbCrSubsampleRatio444)
-		resize(t, tmp, src, interlaced, f)
+		convert(t, tmp, src, interlaced, f)
 		last := tmp.Rect.Dx()
 		for i := 32; i > min; i >>= 1 {
 			last += i
 			dst := image.NewYCbCr(image.Rect(0, 0, last, last), image.YCbCrSubsampleRatio444)
-			resize(t, dst, tmp, interlaced, f)
-			resize(t, tmp, dst, interlaced, f)
+			convert(t, dst, tmp, interlaced, f)
+			convert(t, tmp, dst, interlaced, f)
 		}
 	}
 }
@@ -130,13 +130,13 @@ func TestProgressiveBoundaries(t *testing.T) { testBoundariesWith(t, false) }
 func TestInterlacedBoundaries(t *testing.T)  { testBoundariesWith(t, true) }
 
 func TestCopy(t *testing.T) {
-	resizeFiles(t, 512, 512, "testdata/lenna.jpg", "testdata/copy.png", NewBilinearFilter())
+	convertFiles(t, 512, 512, "testdata/lenna.jpg", "testdata/copy.png", NewBilinearFilter())
 }
 
 func TestInterlacedFail(t *testing.T) {
 	raw := readImage(t, "testdata/lenna.jpg")
 	src := image.NewYCbCr(image.Rect(0, 0, 640, 480), image.YCbCrSubsampleRatio420)
-	resize(t, src, raw, true, NewBicubicFilter())
+	convert(t, src, raw, true, NewBicubicFilter())
 }
 
 type BenchType struct {
@@ -162,13 +162,13 @@ var (
 func benchSpeed(b *testing.B, bt BenchType) {
 	raw := readImage(b, "testdata/lenna.jpg")
 	src := image.NewYCbCr(image.Rect(0, 0, bt.win, bt.hin), image.YCbCrSubsampleRatio420)
-	resize(b, src, raw, bt.interlaced, bt.filter)
+	convert(b, src, raw, bt.interlaced, bt.filter)
 	dst := image.NewYCbCr(image.Rect(0, 0, bt.wout, bt.hout), image.YCbCrSubsampleRatio420)
-	adapter := adapt(b, dst, src, bt.interlaced, bt.filter)
+	converter := prepare(b, dst, src, bt.interlaced, bt.filter)
 	b.SetBytes(int64(bt.wout*bt.hout*3) >> 1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		adapter.Resize(dst, src)
+		converter.Convert(dst, src)
 	}
 }
 
