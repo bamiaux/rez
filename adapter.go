@@ -142,7 +142,6 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 	ctx := &AdapterContext{
 		AdapterConfig: *cfg,
 	}
-	count := 0
 	size := 0
 	for i := uint(0); i < maxPlanes; i++ {
 		win := cfg.Input.GetWidth(i)
@@ -157,7 +156,6 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 				vertical:   false,
 				interlaced: false,
 			}, filter)
-			count++
 		}
 		if hin != hout {
 			ctx.hrez[i] = NewResize(&Config{
@@ -167,7 +165,6 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 				vertical:   true,
 				interlaced: cfg.Input.Interlaced,
 			}, filter)
-			count++
 		}
 		if win != wout && hin != hout {
 			p := &Plane{
@@ -189,9 +186,6 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 				idx += size
 			}
 		}
-	}
-	if count == 0 {
-		return nil, fmt.Errorf("nothing to do")
 	}
 	return ctx, nil
 }
@@ -262,6 +256,9 @@ func (ctx *AdapterContext) Resize(output, input image.Image) error {
 		}
 		if wrez != nil {
 			wrez.Resize(dst.Data, wsrc.Data, dst.Pitch, wsrc.Pitch, wsrc.Width, wsrc.Height)
+		}
+		if hrez == nil && wrez == nil {
+			copyPlane(dst.Data, src.Data, src.Width, src.Height, dst.Pitch, src.Pitch)
 		}
 	}
 	return nil

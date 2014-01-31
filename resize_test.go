@@ -120,6 +120,10 @@ func TestBoundaries(t *testing.T) {
 	}
 }
 
+func TestCopy(t *testing.T) {
+	resizeFiles(t, 512, 512, "testdata/lenna.jpg", "testdata/copy.png", NewBilinearFilter())
+}
+
 func benchSpeed(b *testing.B, win, hin int, wout, hout int, filter Filter) {
 	raw := readImage(b, "testdata/lenna.jpg")
 	src := image.NewYCbCr(image.Rect(0, 0, win, hin), image.YCbCrSubsampleRatio420)
