@@ -97,7 +97,7 @@ func makeIntegerKernel(taps, size int, weights, sums []float64, pos []int16, fie
 	coeffs := make([]int16, taps*size)
 	offsets := make([]int, size)
 	fweights := make(Weights, taps)
-	for i, sum := range sums {
+	for i, sum := range sums[:size] {
 		for j, w := range weights[:taps] {
 			fweights[j].weight = w
 			fweights[j].offset = j

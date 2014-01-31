@@ -72,7 +72,7 @@ func scaleSlices(scaler Scaler,
 			next = ih
 		}
 		scaleSlice(scaler,
-			dst[dst_idx:dst_idx+dp*ih],
+			dst[dst_idx:dst_idx+dp*(ih-1)+width],
 			src[src_idx:],
 			cof[cof_idx:cof_idx+next*taps],
 			off[off_idx:off_idx+next],

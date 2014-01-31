@@ -49,17 +49,19 @@ func writeImage(t Tester, name string, img image.Image) {
 	expect(t, err, nil)
 }
 
-func adapt(t Tester, dst, src *image.YCbCr, filter Filter) Adapter {
+func adapt(t Tester, dst, src *image.YCbCr, interlaced bool, filter Filter) Adapter {
 	cfg := AdapterConfig{
 		Input: Descriptor{
-			Width:  src.Rect.Dx(),
-			Height: src.Rect.Dy(),
-			Ratio:  GetRatio(src.SubsampleRatio),
+			Width:      src.Rect.Dx(),
+			Height:     src.Rect.Dy(),
+			Ratio:      GetRatio(src.SubsampleRatio),
+			Interlaced: interlaced,
 		},
 		Output: Descriptor{
-			Width:  dst.Rect.Dx(),
-			Height: dst.Rect.Dy(),
-			Ratio:  GetRatio(dst.SubsampleRatio),
+			Width:      dst.Rect.Dx(),
+			Height:     dst.Rect.Dy(),
+			Ratio:      GetRatio(dst.SubsampleRatio),
+			Interlaced: interlaced,
 		},
 	}
 	adapter, err := NewAdapter(&cfg, filter)
@@ -67,8 +69,8 @@ func adapt(t Tester, dst, src *image.YCbCr, filter Filter) Adapter {
 	return adapter
 }
 
-func resize(t Tester, dst, src *image.YCbCr, filter Filter) {
-	adapter := adapt(t, dst, src, filter)
+func resize(t Tester, dst, src *image.YCbCr, interlaced bool, filter Filter) {
+	adapter := adapt(t, dst, src, interlaced, filter)
 	err := adapter.Resize(dst, src)
 	expect(t, err, nil)
 }
@@ -76,7 +78,7 @@ func resize(t Tester, dst, src *image.YCbCr, filter Filter) {
 func resizeFiles(t Tester, w, h int, input, output string, filter Filter) {
 	src := readImage(t, input)
 	dst := image.NewYCbCr(image.Rect(0, 0, w, h), image.YCbCrSubsampleRatio420)
-	resize(t, dst, src, filter)
+	resize(t, dst, src, false, filter)
 	writeImage(t, output, dst)
 }
 
@@ -104,42 +106,77 @@ func TestResize(t *testing.T) {
 	}
 }
 
-func TestBoundaries(t *testing.T) {
+func testBoundariesWith(t *testing.T, interlaced bool) {
 	// test we don't go overread/overwrite even with exotic resolutions
 	src := readImage(t, "testdata/lenna.jpg")
+	min := 0
+	if interlaced {
+		min = 1
+	}
 	for _, f := range filters {
 		tmp := image.NewYCbCr(image.Rect(0, 0, 256, 256), image.YCbCrSubsampleRatio444)
-		resize(t, tmp, src, f)
+		resize(t, tmp, src, interlaced, f)
 		last := tmp.Rect.Dx()
-		for i := 32; i > 0; i >>= 1 {
+		for i := 32; i > min; i >>= 1 {
 			last += i
 			dst := image.NewYCbCr(image.Rect(0, 0, last, last), image.YCbCrSubsampleRatio444)
-			resize(t, dst, tmp, f)
-			resize(t, tmp, dst, f)
+			resize(t, dst, tmp, interlaced, f)
+			resize(t, tmp, dst, interlaced, f)
 		}
 	}
 }
+
+func TestProgressiveBoundaries(t *testing.T) { testBoundariesWith(t, false) }
+func TestInterlacedBoundaries(t *testing.T)  { testBoundariesWith(t, true) }
 
 func TestCopy(t *testing.T) {
 	resizeFiles(t, 512, 512, "testdata/lenna.jpg", "testdata/copy.png", NewBilinearFilter())
 }
 
-func benchSpeed(b *testing.B, win, hin int, wout, hout int, filter Filter) {
+func TestInterlacedFail(t *testing.T) {
+	raw := readImage(t, "testdata/lenna.jpg")
+	src := image.NewYCbCr(image.Rect(0, 0, 640, 480), image.YCbCrSubsampleRatio420)
+	resize(t, src, raw, true, NewBicubicFilter())
+}
+
+type BenchType struct {
+	win, hin   int
+	wout, hout int
+	interlaced bool
+	filter     Filter
+}
+
+var (
+	benchs = []BenchType{
+		{640, 480, 1920, 1080, false, NewBilinearFilter()},
+		{640, 480, 1920, 1080, false, NewBicubicFilter()},
+		{640, 480, 1920, 1080, false, NewLanczosFilter(3)},
+		{1920, 1080, 640, 480, false, NewBilinearFilter()},
+		{1920, 1080, 640, 480, false, NewBicubicFilter()},
+		{1920, 1080, 640, 480, false, NewLanczosFilter(3)},
+		{640, 480, 1920, 1080, true, NewBicubicFilter()},
+		{640, 480, 1920, 1080, true, NewBicubicFilter()},
+	}
+)
+
+func benchSpeed(b *testing.B, bt BenchType) {
 	raw := readImage(b, "testdata/lenna.jpg")
-	src := image.NewYCbCr(image.Rect(0, 0, win, hin), image.YCbCrSubsampleRatio420)
-	resize(b, src, raw, filter)
-	dst := image.NewYCbCr(image.Rect(0, 0, wout, hout), image.YCbCrSubsampleRatio420)
-	adapter := adapt(b, dst, src, filter)
-	b.SetBytes(int64(wout*hout*3) >> 1)
+	src := image.NewYCbCr(image.Rect(0, 0, bt.win, bt.hin), image.YCbCrSubsampleRatio420)
+	resize(b, src, raw, bt.interlaced, bt.filter)
+	dst := image.NewYCbCr(image.Rect(0, 0, bt.wout, bt.hout), image.YCbCrSubsampleRatio420)
+	adapter := adapt(b, dst, src, bt.interlaced, bt.filter)
+	b.SetBytes(int64(bt.wout*bt.hout*3) >> 1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		adapter.Resize(dst, src)
 	}
 }
 
-func BenchmarkBilinearUp(b *testing.B)   { benchSpeed(b, 640, 480, 1920, 1080, NewBilinearFilter()) }
-func BenchmarkBicubicUp(b *testing.B)    { benchSpeed(b, 640, 480, 1920, 1080, NewBicubicFilter()) }
-func BenchmarkLanczosUp(b *testing.B)    { benchSpeed(b, 640, 480, 1920, 1080, NewLanczosFilter(3)) }
-func BenchmarkBilinearDown(b *testing.B) { benchSpeed(b, 1920, 1080, 640, 480, NewBilinearFilter()) }
-func BenchmarkBicubicDown(b *testing.B)  { benchSpeed(b, 1920, 1080, 640, 480, NewBicubicFilter()) }
-func BenchmarkLanczosDown(b *testing.B)  { benchSpeed(b, 1920, 1080, 640, 480, NewLanczosFilter(3)) }
+func BenchmarkBilinearUp(b *testing.B)   { benchSpeed(b, benchs[0]) }
+func BenchmarkBicubicUp(b *testing.B)    { benchSpeed(b, benchs[1]) }
+func BenchmarkLanczosUp(b *testing.B)    { benchSpeed(b, benchs[2]) }
+func BenchmarkBilinearDown(b *testing.B) { benchSpeed(b, benchs[3]) }
+func BenchmarkBicubicDown(b *testing.B)  { benchSpeed(b, benchs[4]) }
+func BenchmarkLanczosDown(b *testing.B)  { benchSpeed(b, benchs[5]) }
+func BenchmarkBicubicIUp(b *testing.B)   { benchSpeed(b, benchs[6]) }
+func BenchmarkBicubicIDown(b *testing.B) { benchSpeed(b, benchs[7]) }
