@@ -5,11 +5,11 @@
 package rez
 
 type Config struct {
-	depth      int
-	input      int
-	output     int
-	vertical   bool
-	interlaced bool
+	Depth      int
+	Input      int
+	Output     int
+	Vertical   bool
+	Interlaced bool
 }
 
 type Resizer interface {
@@ -30,11 +30,11 @@ func NewResize(cfg *Config, filter Filter) Resizer {
 		cfg:    *cfg,
 		scaler: h8scaleN,
 	}
-	ctx.cfg.depth = 8 // only 8-bit for now
+	ctx.cfg.Depth = 8 // only 8-bit for now
 	ctx.kernels = []Kernel{makeKernel(&ctx.cfg, filter, 0)}
-	if cfg.vertical {
+	if cfg.Vertical {
 		ctx.scaler = v8scaleN
-		if cfg.interlaced {
+		if cfg.Interlaced {
 			ctx.kernels = append(ctx.kernels, makeKernel(&ctx.cfg, filter, 1))
 		}
 	}
@@ -42,12 +42,12 @@ func NewResize(cfg *Config, filter Filter) Resizer {
 }
 
 func (c *Context) Resize(dst, src []byte, dpitch, spitch int, width, height int) {
-	field := bin(c.cfg.vertical && c.cfg.interlaced)
-	dwidth := c.cfg.output
+	field := bin(c.cfg.Vertical && c.cfg.Interlaced)
+	dwidth := c.cfg.Output
 	dheight := height
-	if c.cfg.vertical {
+	if c.cfg.Vertical {
 		dwidth = width
-		dheight = c.cfg.output >> field
+		dheight = c.cfg.Output >> field
 	}
 	for i, k := range c.kernels[:1+field] {
 		c.scaler(dst[dpitch*i:], src[spitch*i:], k.coeffs, k.offsets,

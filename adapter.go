@@ -150,20 +150,20 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 		hout := cfg.Output.GetHeight(i)
 		if win != wout {
 			ctx.wrez[i] = NewResize(&Config{
-				depth:      8,
-				input:      win,
-				output:     wout,
-				vertical:   false,
-				interlaced: false,
+				Depth:      8,
+				Input:      win,
+				Output:     wout,
+				Vertical:   false,
+				Interlaced: false,
 			}, filter)
 		}
 		if hin != hout {
 			ctx.hrez[i] = NewResize(&Config{
-				depth:      8,
-				input:      hin,
-				output:     hout,
-				vertical:   true,
-				interlaced: cfg.Input.Interlaced,
+				Depth:      8,
+				Input:      hin,
+				Output:     hout,
+				Vertical:   true,
+				Interlaced: cfg.Input.Interlaced,
 			}, filter)
 		}
 		if win != wout && hin != hout {

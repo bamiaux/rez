@@ -40,23 +40,23 @@ func max(a, b int) int {
 }
 
 func makeDoubleKernel(cfg *Config, filter Filter, field, idx uint) ([]int16, []float64, []float64, int, int) {
-	scale := float64(cfg.output) / float64(cfg.input)
+	scale := float64(cfg.Output) / float64(cfg.Input)
 	step := math.Min(1, scale)
 	support := float64(filter.Taps()) / step
 	taps := int(math.Ceil(support)) * 2
-	offsets := make([]int16, cfg.output)
-	sums := make([]float64, cfg.output)
-	weights := make([]float64, cfg.output*taps)
-	xmid := float64(cfg.input-cfg.output) / float64(cfg.output*2)
+	offsets := make([]int16, cfg.Output)
+	sums := make([]float64, cfg.Output)
+	weights := make([]float64, cfg.Output*taps)
+	xmid := float64(cfg.Input-cfg.Output) / float64(cfg.Output*2)
 	xstep := 1 / scale
 	// interlaced resize see only one field but still use full res pixel positions
 	ftaps := taps << field
-	size := cfg.output >> field
+	size := cfg.Output >> field
 	step /= float64(1 + field)
 	xmid += xstep * float64(field*idx)
 	for i := 0; i < size; i++ {
 		left := int(math.Ceil(xmid)) - ftaps>>1
-		x := clip(left, 0, max(0, cfg.input-ftaps))
+		x := clip(left, 0, max(0, cfg.Input-ftaps))
 		offsets[i] = int16(x)
 		for j := 0; j < ftaps; j++ {
 			src := left + j
@@ -64,7 +64,7 @@ func makeDoubleKernel(cfg *Config, filter Filter, field, idx uint) ([]int16, []f
 				continue
 			}
 			weight := filter.Get(math.Abs(xmid-float64(src)) * step)
-			src = clip(src, x, cfg.input-1) - x
+			src = clip(src, x, cfg.Input-1) - x
 			src >>= field
 			weights[i*taps+src] += weight
 			sums[i] += weight
@@ -119,11 +119,11 @@ func makeIntegerKernel(taps, size int, weights, sums []float64, pos []int16, fie
 }
 
 func makeKernel(cfg *Config, filter Filter, idx uint) Kernel {
-	field := bin(cfg.interlaced)
+	field := bin(cfg.Interlaced)
 	pos, sums, weights, taps, size := makeDoubleKernel(cfg, filter, field, idx)
 	coeffs, offsets := makeIntegerKernel(taps, size, weights, sums, pos, field, idx)
 	//coeffs, offsets = reduceKernel(coeffs, offsets, taps, size)
-	if cfg.vertical {
+	if cfg.Vertical {
 		for i := size - 1; i > 0; i-- {
 			offsets[i] = offsets[i] - offsets[i-1]
 		}
