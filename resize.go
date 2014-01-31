@@ -4,6 +4,10 @@
 
 package rez
 
+import (
+	"sync"
+)
+
 type Config struct {
 	Depth      int
 	Input      int
@@ -47,9 +51,10 @@ func scaleSlice(scaler Scaler,
 	scaler(dst, src, cof, off, taps, width, height, dp, sp)
 }
 
-func scaleSlices(scaler Scaler,
+func scaleSlices(group *sync.WaitGroup, scaler Scaler,
 	vertical bool, threads, taps, width, height, dp, sp int,
 	dst, src []byte, cof []int16, off []int) {
+	defer group.Done()
 	nh := height / threads
 	if nh < 1 {
 		nh = 1
@@ -101,9 +106,12 @@ func (c *Context) Resize(dst, src []byte, width, height, dp, sp int) {
 		dwidth = width
 		dheight = c.cfg.Output >> field
 	}
+	group := sync.WaitGroup{}
 	for i, k := range c.kernels[:1+field] {
-		scaleSlices(c.scaler, c.cfg.Vertical, c.cfg.Threads,
+		group.Add(1)
+		go scaleSlices(&group, c.scaler, c.cfg.Vertical, c.cfg.Threads,
 			k.size, dwidth, dheight, dp<<field, sp<<field,
 			dst[dp*i:], src[sp*i:], k.coeffs, k.offsets)
 	}
+	group.Wait()
 }
