@@ -7,6 +7,7 @@ package rez
 import (
 	"fmt"
 	"image"
+	"runtime"
 	"sync"
 )
 
@@ -141,7 +142,9 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 			toInterlacedString(cfg.Input.Interlaced),
 			toInterlacedString(cfg.Output.Interlaced))
 	}
-	cfg.Threads = 1
+	if cfg.Threads == 0 {
+		cfg.Threads = runtime.GOMAXPROCS(0)
+	}
 	ctx := &AdapterContext{
 		AdapterConfig: *cfg,
 	}

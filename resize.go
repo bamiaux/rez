@@ -46,8 +46,9 @@ func NewResize(cfg *Config, filter Filter) Resizer {
 	return &ctx
 }
 
-func scaleSlice(scaler Scaler,
+func scaleSlice(group *sync.WaitGroup, scaler Scaler,
 	dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int) {
+	defer group.Done()
 	scaler(dst, src, cof, off, taps, width, height, dp, sp)
 }
 
@@ -76,7 +77,8 @@ func scaleSlices(group *sync.WaitGroup, scaler Scaler,
 		if vertical {
 			next = ih
 		}
-		scaleSlice(scaler,
+		group.Add(1)
+		go scaleSlice(group, scaler,
 			dst[dst_idx:dst_idx+dp*(ih-1)+width],
 			src[src_idx:],
 			cof[cof_idx:cof_idx+next*taps],
