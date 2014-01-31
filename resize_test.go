@@ -134,8 +134,8 @@ func benchSpeed(b *testing.B, win, hin int, wout, hout int, filter Filter) {
 }
 
 func BenchmarkBilinearUp(b *testing.B)   { benchSpeed(b, 640, 480, 1920, 1080, NewBilinearFilter()) }
-func BenchmarkBilinearDown(b *testing.B) { benchSpeed(b, 1920, 1080, 640, 480, NewBilinearFilter()) }
 func BenchmarkBicubicUp(b *testing.B)    { benchSpeed(b, 640, 480, 1920, 1080, NewBicubicFilter()) }
-func BenchmarkBicubicDown(b *testing.B)  { benchSpeed(b, 1920, 1080, 640, 480, NewBicubicFilter()) }
 func BenchmarkLanczosUp(b *testing.B)    { benchSpeed(b, 640, 480, 1920, 1080, NewLanczosFilter(3)) }
+func BenchmarkBilinearDown(b *testing.B) { benchSpeed(b, 1920, 1080, 640, 480, NewBilinearFilter()) }
+func BenchmarkBicubicDown(b *testing.B)  { benchSpeed(b, 1920, 1080, 640, 480, NewBicubicFilter()) }
 func BenchmarkLanczosDown(b *testing.B)  { benchSpeed(b, 1920, 1080, 640, 480, NewLanczosFilter(3)) }
