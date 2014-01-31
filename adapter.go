@@ -94,8 +94,9 @@ func (d *Descriptor) GetHeight(plane uint) int {
 }
 
 type AdapterConfig struct {
-	Input  Descriptor
-	Output Descriptor
+	Input   Descriptor
+	Output  Descriptor
+	Threads int
 }
 
 const (
@@ -139,6 +140,7 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 			toInterlacedString(cfg.Input.Interlaced),
 			toInterlacedString(cfg.Output.Interlaced))
 	}
+	cfg.Threads = 1
 	ctx := &AdapterContext{
 		AdapterConfig: *cfg,
 	}
@@ -155,6 +157,7 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 				Output:     wout,
 				Vertical:   false,
 				Interlaced: false,
+				Threads:    cfg.Threads,
 			}, filter)
 		}
 		if hin != hout {
@@ -164,6 +167,7 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 				Output:     hout,
 				Vertical:   true,
 				Interlaced: cfg.Input.Interlaced,
+				Threads:    cfg.Threads,
 			}, filter)
 		}
 		if win != wout && hin != hout {
