@@ -186,9 +186,9 @@ func NewAdapter(cfg *AdapterConfig, filter Filter) (Adapter, error) {
 		idx := 0
 		for i := uint(0); i < maxPlanes; i++ {
 			if p := ctx.buffer[i]; p != nil {
-				size := p.Pitch * p.Height
+				size := p.Pitch*(p.Height-1) + p.Width
 				p.Data = buffer[idx : idx+size]
-				idx += size
+				idx += p.Pitch * p.Height
 			}
 		}
 	}
@@ -227,13 +227,13 @@ func parse(data image.Image, plane uint, interlaced bool) (*Plane, error) {
 	switch plane {
 	case 0:
 		p.Pitch = yuv.YStride
-		p.Data = yuv.Y[yuv.YOffset(0, 0) : p.Pitch*p.Height]
+		p.Data = yuv.Y[yuv.YOffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
 	case 1:
 		p.Pitch = yuv.CStride
-		p.Data = yuv.Cb[yuv.COffset(0, 0) : p.Pitch*p.Height]
+		p.Data = yuv.Cb[yuv.COffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
 	case 2:
 		p.Pitch = yuv.CStride
-		p.Data = yuv.Cr[yuv.COffset(0, 0) : p.Pitch*p.Height]
+		p.Data = yuv.Cr[yuv.COffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
 	}
 	return p, nil
 }
