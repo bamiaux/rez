@@ -7,6 +7,7 @@ package rez
 import (
 	"fmt"
 	"image"
+	"sync"
 )
 
 type Adapter interface {
@@ -237,7 +238,8 @@ func parse(data image.Image, plane uint, interlaced bool) (*Plane, error) {
 	return p, nil
 }
 
-func resizePlane(dst, src, buf *Plane, hrez, wrez Resizer) {
+func resizePlane(group *sync.WaitGroup, dst, src, buf *Plane, hrez, wrez Resizer) {
+	defer group.Done()
 	hdst := dst
 	wsrc := src
 	if hrez != nil && wrez != nil {
@@ -270,8 +272,11 @@ func (ctx *AdapterContext) Resize(output, input image.Image) error {
 		srcs[i] = src
 		dsts[i] = dst
 	}
+	group := sync.WaitGroup{}
 	for i := uint(0); i < maxPlanes; i++ {
-		resizePlane(dsts[i], srcs[i], ctx.buffer[i], ctx.hrez[i], ctx.wrez[i])
+		group.Add(1)
+		go resizePlane(&group, dsts[i], srcs[i], ctx.buffer[i], ctx.hrez[i], ctx.wrez[i])
 	}
+	group.Wait()
 	return nil
 }
