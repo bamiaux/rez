@@ -30,15 +30,51 @@ type Context struct {
 	scaler  Scaler
 }
 
+func getHorizontalScaler(taps int) Scaler {
+	switch taps {
+	case 2:
+		return h8scale2
+	case 4:
+		return h8scale4
+	case 6:
+		return h8scale6
+	case 8:
+		return h8scale8
+	case 10:
+		return h8scale10
+	case 12:
+		return h8scale12
+	}
+	return h8scaleN
+}
+
+func getVerticalScaler(taps int) Scaler {
+	switch taps {
+	case 2:
+		return v8scale2
+	case 4:
+		return v8scale4
+	case 6:
+		return v8scale6
+	case 8:
+		return v8scale8
+	case 10:
+		return v8scale10
+	case 12:
+		return v8scale12
+	}
+	return v8scaleN
+}
+
 func NewResize(cfg *Config, filter Filter) Resizer {
 	ctx := Context{
-		cfg:    *cfg,
-		scaler: h8scaleN,
+		cfg: *cfg,
 	}
 	ctx.cfg.Depth = 8 // only 8-bit for now
 	ctx.kernels = []Kernel{makeKernel(&ctx.cfg, filter, 0)}
+	ctx.scaler = getHorizontalScaler(ctx.kernels[0].size)
 	if cfg.Vertical {
-		ctx.scaler = v8scaleN
+		ctx.scaler = getVerticalScaler(ctx.kernels[0].size)
 		if cfg.Interlaced {
 			ctx.kernels = append(ctx.kernels, makeKernel(&ctx.cfg, filter, 1))
 		}
