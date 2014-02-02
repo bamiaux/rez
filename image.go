@@ -2,6 +2,25 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+/*
+Package rez provides image resizing for go
+
+Currently, rez is capable to convert any ycbcr image to any other, applying
+any resizing necessary, including changing the chroma subsampling ratio.
+
+The easiest way to use it is:
+
+    err := Convert(output, input, NewBicubicFilter())
+
+However, if you plan to convert video, where resize parameters are the same for
+multiple images, the best way is:
+
+    cfg, err := PrepareConversion(output, input)
+    converter, err := NewConverter(cfg, NewBicubicFilter())
+    for i := 0; i < N; i++ {
+        err := converter.Convert(output[i], input[i])
+    }
+*/
 package rez
 
 import (
