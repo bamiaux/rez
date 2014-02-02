@@ -9,7 +9,7 @@ import (
 	"sort"
 )
 
-type Kernel struct {
+type kernel struct {
 	coeffs  []int16
 	offsets []int
 	size    int
@@ -74,59 +74,59 @@ func makeDoubleKernel(cfg *Config, filter Filter, field, idx uint) ([]int16, []f
 	return offsets, sums, weights, taps, size
 }
 
-type Weight struct {
+type weight struct {
 	weight float64
 	offset int
 }
 
-type Weights []Weight
+type weights []weight
 
-func (w Weights) Len() int {
+func (w weights) Len() int {
 	return len(w)
 }
 
-func (w Weights) Less(i, j int) bool {
+func (w weights) Less(i, j int) bool {
 	return math.Abs(w[j].weight) < math.Abs(w[i].weight)
 }
 
-func (w Weights) Swap(i, j int) {
+func (w weights) Swap(i, j int) {
 	w[i], w[j] = w[j], w[i]
 }
 
-func makeIntegerKernel(taps, size int, weights, sums []float64, pos []int16, field, idx uint) ([]int16, []int) {
+func makeIntegerKernel(taps, size int, cof, sums []float64, pos []int16, field, idx uint) ([]int16, []int) {
 	coeffs := make([]int16, taps*size)
 	offsets := make([]int, size)
-	fweights := make(Weights, taps)
+	weights := make(weights, taps)
 	for i, sum := range sums[:size] {
-		for j, w := range weights[:taps] {
-			fweights[j].weight = w
-			fweights[j].offset = j
+		for j, w := range cof[:taps] {
+			weights[j].weight = w
+			weights[j].offset = j
 		}
-		sort.Sort(fweights)
+		sort.Sort(weights)
 		diff := float64(0)
 		scale := 1 << Bits / sum
-		for _, it := range fweights {
+		for _, it := range weights {
 			w := it.weight*scale + diff
 			iw := math.Floor(w + 0.5)
 			coeffs[i*taps+it.offset] = int16(iw)
 			diff = w - iw
 		}
-		weights = weights[taps:]
+		cof = cof[taps:]
 		off := int(pos[i]) + int(field) - int(idx)
 		offsets[i] = off >> field
 	}
 	return coeffs, offsets
 }
 
-func makeKernel(cfg *Config, filter Filter, idx uint) Kernel {
+func makeKernel(cfg *Config, filter Filter, idx uint) kernel {
 	field := bin(cfg.Interlaced)
-	pos, sums, weights, taps, size := makeDoubleKernel(cfg, filter, field, idx)
-	coeffs, offsets := makeIntegerKernel(taps, size, weights, sums, pos, field, idx)
+	pos, sums, cof, taps, size := makeDoubleKernel(cfg, filter, field, idx)
+	coeffs, offsets := makeIntegerKernel(taps, size, cof, sums, pos, field, idx)
 	//coeffs, offsets = reduceKernel(coeffs, offsets, taps, size)
 	if cfg.Vertical {
 		for i := size - 1; i > 0; i-- {
 			offsets[i] = offsets[i] - offsets[i-1]
 		}
 	}
-	return Kernel{coeffs, offsets, taps}
+	return kernel{coeffs, offsets, taps}
 }

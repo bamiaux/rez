@@ -11,20 +11,35 @@ import (
 	"sync"
 )
 
+// Converter is an interface that implements conversion between images
+// It is currently able to convert only between ycbcr images
 type Converter interface {
+	// Converts one image into another, applying any necessary colorspace
+	// conversion and/or resizing
+	// dst = destination image
+	// src = source image
+	// Result is undefined if src points to the same data as dst
+	// Returns an error if the conversion fails
 	Convert(dst, src image.Image) error
 }
 
+// ChromaRatio is a chroma subsampling ratio
 type ChromaRatio int
 
 const (
+	// Ratio411 is 4:1:1
 	Ratio411 ChromaRatio = iota
+	// Ratio420 is 4:2:0
 	Ratio420
+	// Ratio422 is 4:2:2
 	Ratio422
+	// Ratio440 is 4:4:0
 	Ratio440
+	// Ratio444 is 4:4:4
 	Ratio444
 )
 
+// Descriptor describes an image properties
 type Descriptor struct {
 	Width      int
 	Height     int
@@ -32,6 +47,7 @@ type Descriptor struct {
 	Interlaced bool
 }
 
+// Check returns whether the descriptor is valid
 func (d *Descriptor) Check() error {
 	w := 1
 	h := 1
@@ -61,6 +77,7 @@ func (d *Descriptor) Check() error {
 	return nil
 }
 
+// GetWidth returns the width in pixels for the input plane
 func (d *Descriptor) GetWidth(plane uint) int {
 	if plane == 0 {
 		return d.Width
@@ -79,6 +96,7 @@ func (d *Descriptor) GetWidth(plane uint) int {
 	panic(fmt.Errorf("invalid ratio %v", d.Ratio))
 }
 
+// GetHeight returns the height in pixels for the input plane
 func (d *Descriptor) GetHeight(plane uint) int {
 	if plane == 0 {
 		return d.Height
@@ -95,24 +113,26 @@ func (d *Descriptor) GetHeight(plane uint) int {
 	panic(fmt.Errorf("invalid ratio %v", d.Ratio))
 }
 
+// ConverterConfig is a configuration used with NewConverter
 type ConverterConfig struct {
-	Input   Descriptor
-	Output  Descriptor
-	Threads int
+	Input   Descriptor // input description
+	Output  Descriptor // output description
+	Threads int        // number of allowed "threads"
 }
 
 const (
 	maxPlanes = 3
 )
 
+// Plane describes a single image plane
 type Plane struct {
-	Data   []byte
-	Width  int
-	Height int
-	Pitch  int
+	Data   []byte // plane buffer
+	Width  int    // width in pixels
+	Height int    // height in pixels
+	Pitch  int    // pitch in bytes
 }
 
-type ConverterContext struct {
+type converterContext struct {
 	ConverterConfig
 	wrez   [maxPlanes]Resizer
 	hrez   [maxPlanes]Resizer
@@ -130,6 +150,10 @@ func align(value, align int) int {
 	return (value + align - 1) & -align
 }
 
+// NewConverter returns a Converter interface
+// cfg = converter configuration
+// filter = filter used for resizing
+// Returns an error if the conversion is invalid or not implemented
 func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 	if err := cfg.Input.Check(); err != nil {
 		return nil, err
@@ -145,7 +169,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 	if cfg.Threads == 0 {
 		cfg.Threads = runtime.GOMAXPROCS(0)
 	}
-	ctx := &ConverterContext{
+	ctx := &converterContext{
 		ConverterConfig: *cfg,
 	}
 	size := 0
@@ -198,6 +222,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 	return ctx, nil
 }
 
+// GetRatio returns a ChromaRation from an image.YCbCrSubsampleRatio
 func GetRatio(value image.YCbCrSubsampleRatio) ChromaRatio {
 	switch value {
 	case image.YCbCrSubsampleRatio420:
@@ -267,7 +292,7 @@ func resizePlane(group *sync.WaitGroup, dst, src, buf *Plane, hrez, wrez Resizer
 	}
 }
 
-func (ctx *ConverterContext) Convert(output, input image.Image) error {
+func (ctx *converterContext) Convert(output, input image.Image) error {
 	srcs := [maxPlanes]*Plane{}
 	dsts := [maxPlanes]*Plane{}
 	for i := uint(0); i < maxPlanes; i++ {
@@ -291,6 +316,10 @@ func (ctx *ConverterContext) Convert(output, input image.Image) error {
 	return nil
 }
 
+// Convert converts an input image into output, applying any color conversion
+// and/or resizing, using the input filter for interpolation.
+// Note that if you plan to do the same conversion over and over, it is faster
+// to use a Converter interface
 func Convert(output, input image.Image, filter Filter) error {
 	_, src, err := parseYuv(input, false)
 	if err != nil {
@@ -311,6 +340,8 @@ func Convert(output, input image.Image, filter Filter) error {
 	return converter.Convert(output, input)
 }
 
+// Psnr computes the PSNR between two input images
+// Only ycbcr is currently supported
 func Psnr(a, b image.Image) ([]float64, error) {
 	psnrs := []float64{}
 	for i := uint(0); i < maxPlanes; i++ {

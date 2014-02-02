@@ -8,29 +8,35 @@ import (
 	"sync"
 )
 
+// Config is a configuration used with NewResizer
 type Config struct {
-	Depth      int
-	Input      int
-	Output     int
-	Vertical   bool
-	Interlaced bool
-	Threads    int
+	Depth      int  // bits per pixel
+	Input      int  // input size in pixels
+	Output     int  // output size in pixels
+	Vertical   bool // true for vertical resizes
+	Interlaced bool // true if input/output is interlaced
+	Threads    int  // number of threads, [default=0]
 }
 
+// Resizer is a interface that implements resizes
 type Resizer interface {
+	// Resize one plane into another
+	// dst, src = destination and source buffer
+	// width, height = plane dimensions in pixels
+	// dstPitch, srcPitch = destination and source pitchs/strides in bytes
 	Resize(dst, src []byte, width, height, dstPitch, srcPitch int)
 }
 
-type Scaler func(dst, src []byte, cof []int16, off []int,
+type scaler func(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dstPitch, srcPitch int)
 
-type Context struct {
+type context struct {
 	cfg     Config
-	kernels []Kernel
-	scaler  Scaler
+	kernels []kernel
+	scaler  scaler
 }
 
-func getHorizontalScaler(taps int) Scaler {
+func getHorizontalScaler(taps int) scaler {
 	switch taps {
 	case 2:
 		return h8scale2
@@ -48,7 +54,7 @@ func getHorizontalScaler(taps int) Scaler {
 	return h8scaleN
 }
 
-func getVerticalScaler(taps int) Scaler {
+func getVerticalScaler(taps int) scaler {
 	switch taps {
 	case 2:
 		return v8scale2
@@ -66,12 +72,15 @@ func getVerticalScaler(taps int) Scaler {
 	return v8scaleN
 }
 
+// NewResize returns a new resizer
+// cfg = resize configuration
+// filter = filter used for computing weights
 func NewResize(cfg *Config, filter Filter) Resizer {
-	ctx := Context{
+	ctx := context{
 		cfg: *cfg,
 	}
 	ctx.cfg.Depth = 8 // only 8-bit for now
-	ctx.kernels = []Kernel{makeKernel(&ctx.cfg, filter, 0)}
+	ctx.kernels = []kernel{makeKernel(&ctx.cfg, filter, 0)}
 	ctx.scaler = getHorizontalScaler(ctx.kernels[0].size)
 	if cfg.Vertical {
 		ctx.scaler = getVerticalScaler(ctx.kernels[0].size)
@@ -82,13 +91,13 @@ func NewResize(cfg *Config, filter Filter) Resizer {
 	return &ctx
 }
 
-func scaleSlice(group *sync.WaitGroup, scaler Scaler,
+func scaleSlice(group *sync.WaitGroup, scaler scaler,
 	dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int) {
 	defer group.Done()
 	scaler(dst, src, cof, off, taps, width, height, dp, sp)
 }
 
-func scaleSlices(group *sync.WaitGroup, scaler Scaler,
+func scaleSlices(group *sync.WaitGroup, scaler scaler,
 	vertical bool, threads, taps, width, height, dp, sp int,
 	dst, src []byte, cof []int16, off []int) {
 	defer group.Done()
@@ -96,10 +105,10 @@ func scaleSlices(group *sync.WaitGroup, scaler Scaler,
 	if nh < 1 {
 		nh = 1
 	}
-	dst_idx := 0
-	src_idx := 0
-	off_idx := 0
-	cof_idx := 0
+	di := 0
+	si := 0
+	oi := 0
+	ci := 0
 	for i := 0; i < threads; i++ {
 		last := i+1 == threads
 		ih := nh
@@ -115,28 +124,28 @@ func scaleSlices(group *sync.WaitGroup, scaler Scaler,
 		}
 		group.Add(1)
 		go scaleSlice(group, scaler,
-			dst[dst_idx:dst_idx+dp*(ih-1)+width],
-			src[src_idx:],
-			cof[cof_idx:cof_idx+next*taps],
-			off[off_idx:off_idx+next],
+			dst[di:di+dp*(ih-1)+width],
+			src[si:],
+			cof[ci:ci+next*taps],
+			off[oi:oi+next],
 			taps, width, ih, dp, sp)
 		if last {
 			break
 		}
-		dst_idx += ih * dp
+		di += ih * dp
 		if vertical {
-			cof_idx += ih * taps
+			ci += ih * taps
 			for j := 0; j < ih; j++ {
-				src_idx += sp * off[off_idx+j]
+				si += sp * off[oi+j]
 			}
-			off_idx += ih
+			oi += ih
 		} else {
-			src_idx += sp * ih
+			si += sp * ih
 		}
 	}
 }
 
-func (c *Context) Resize(dst, src []byte, width, height, dp, sp int) {
+func (c *context) Resize(dst, src []byte, width, height, dp, sp int) {
 	field := bin(c.cfg.Vertical && c.cfg.Interlaced)
 	dwidth := c.cfg.Output
 	dheight := height

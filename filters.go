@@ -8,6 +8,8 @@ import (
 	"math"
 )
 
+// Filter is an interpolation filter interface
+// It is used to compute weights for every input pixel
 type Filter interface {
 	Taps() int
 	Name() string
@@ -26,6 +28,7 @@ func (bilinear) Get(x float64) float64 {
 	return 0
 }
 
+// NewBilinearFilter exports a bilinear filter
 func NewBilinearFilter() Filter {
 	return bilinear{}
 }
@@ -51,6 +54,9 @@ func (f *bicubic) Get(x float64) float64 {
 	return 0
 }
 
+// NewCustomBicubicFilter exports a bicubic filter where <b> and <c> can be
+// customized.
+// For example, the Mitchell-Netravali bicubic filter is b = c = 1/3
 func NewCustomBicubicFilter(b, c float64) Filter {
 	f := &bicubic{}
 	f.a = 1 - b/3
@@ -63,16 +69,17 @@ func NewCustomBicubicFilter(b, c float64) Filter {
 	return f
 }
 
+// NewBicubicFilter exports a classic bicubic filter
 func NewBicubicFilter() Filter {
 	return NewCustomBicubicFilter(0, 0.5)
 }
 
 type lanczos struct {
-	taps float64
+	alpha float64
 }
 
 func (f lanczos) Taps() int {
-	return int(f.taps)
+	return int(f.alpha)
 }
 
 func (lanczos) Name() string {
@@ -80,16 +87,17 @@ func (lanczos) Name() string {
 }
 
 func (f lanczos) Get(x float64) float64 {
-	if x > f.taps {
+	if x > f.alpha {
 		return 0
 	} else if x == 0 {
 		return 1
 	}
 	b := x * math.Pi
-	c := b / f.taps
+	c := b / f.alpha
 	return math.Sin(b) * math.Sin(c) / (b * c)
 }
 
-func NewLanczosFilter(taps int) Filter {
-	return lanczos{taps: float64(taps)}
+// NewLanczosFilter exports a lanczos filter where <alpha> is filter size
+func NewLanczosFilter(alpha int) Filter {
+	return lanczos{alpha: float64(alpha)}
 }

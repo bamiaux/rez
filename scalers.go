@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	// Bits exports the number of significant bits used by kernels
 	Bits = 14
 )
 
@@ -23,26 +24,26 @@ func u8(x int) byte {
 }
 
 func copyPlane(dst, src []byte, width, height, dp, sp int) {
-	dst_idx := 0
-	src_idx := 0
+	di := 0
+	si := 0
 	for y := 0; y < height; y++ {
-		copy(dst[dst_idx:dst_idx+width], src[src_idx:src_idx+width])
-		dst_idx += dp
-		src_idx += sp
+		copy(dst[di:di+width], src[si:si+width])
+		di += dp
+		si += sp
 	}
 }
 
 func psnrPlane(dst, src []byte, width, height, dp, sp int) float64 {
 	mse := 0
-	dst_idx := 0
-	src_idx := 0
+	di := 0
+	si := 0
 	for y := 0; y < height; y++ {
-		for x, v := range src[src_idx : src_idx+width] {
-			n := int(v) - int(dst[dst_idx+x])
+		for x, v := range src[si : si+width] {
+			n := int(v) - int(dst[di+x])
 			mse += n * n
 		}
-		dst_idx += dp
-		src_idx += sp
+		di += dp
+		si += sp
 	}
 	fmse := float64(mse) / float64(width*height)
 	return 10 * math.Log10(255*255/fmse)
@@ -50,37 +51,37 @@ func psnrPlane(dst, src []byte, width, height, dp, sp int) float64 {
 
 func h8scaleN(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
-	dst_idx := 0
-	src_idx := 0
+	di := 0
+	si := 0
 	for y := 0; y < height; y++ {
 		c := cof
-		for x := range dst[dst_idx : dst_idx+width] {
-			xoff := src_idx + off[x]
+		for x := range dst[di : di+width] {
+			xoff := si + off[x]
 			pix := 0
 			for i, d := range src[xoff : xoff+taps] {
 				pix += int(d) * int(c[i])
 			}
-			dst[dst_idx+x] = u8((pix + 1<<(Bits-1)) >> Bits)
+			dst[di+x] = u8((pix + 1<<(Bits-1)) >> Bits)
 			c = c[taps:]
 		}
-		dst_idx += dp
-		src_idx += sp
+		di += dp
+		si += sp
 	}
 }
 
 func v8scaleN(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
-	dst_idx := 0
+	di := 0
 	for _, yoff := range off[:height] {
 		src = src[sp*yoff:]
-		for x := range dst[dst_idx : dst_idx+width] {
+		for x := range dst[di : di+width] {
 			pix := 0
 			for i, c := range cof[:taps] {
 				pix += int(src[sp*i+x]) * int(c)
 			}
-			dst[dst_idx+x] = u8((pix + 1<<(Bits-1)) >> Bits)
+			dst[di+x] = u8((pix + 1<<(Bits-1)) >> Bits)
 		}
 		cof = cof[taps:]
-		dst_idx += dp
+		di += dp
 	}
 }
