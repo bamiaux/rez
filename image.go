@@ -198,7 +198,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 		wout := cfg.Output.GetWidth(i)
 		hout := cfg.Output.GetHeight(i)
 		if win != wout {
-			ctx.wrez[i] = NewResize(&Config{
+			ctx.wrez[i] = NewResize(&ResizerConfig{
 				Depth:      8,
 				Input:      win,
 				Output:     wout,
@@ -208,7 +208,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 			}, filter)
 		}
 		if hin != hout {
-			ctx.hrez[i] = NewResize(&Config{
+			ctx.hrez[i] = NewResize(&ResizerConfig{
 				Depth:      8,
 				Input:      hin,
 				Output:     hout,

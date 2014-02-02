@@ -39,7 +39,7 @@ func max(a, b int) int {
 	return b
 }
 
-func makeDoubleKernel(cfg *Config, filter Filter, field, idx uint) ([]int16, []float64, []float64, int, int) {
+func makeDoubleKernel(cfg *ResizerConfig, filter Filter, field, idx uint) ([]int16, []float64, []float64, int, int) {
 	scale := float64(cfg.Output) / float64(cfg.Input)
 	step := math.Min(1, scale)
 	support := float64(filter.Taps()) / step
@@ -118,7 +118,7 @@ func makeIntegerKernel(taps, size int, cof, sums []float64, pos []int16, field, 
 	return coeffs, offsets
 }
 
-func makeKernel(cfg *Config, filter Filter, idx uint) kernel {
+func makeKernel(cfg *ResizerConfig, filter Filter, idx uint) kernel {
 	field := bin(cfg.Interlaced)
 	pos, sums, cof, taps, size := makeDoubleKernel(cfg, filter, field, idx)
 	coeffs, offsets := makeIntegerKernel(taps, size, cof, sums, pos, field, idx)

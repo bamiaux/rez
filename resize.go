@@ -8,8 +8,8 @@ import (
 	"sync"
 )
 
-// Config is a configuration used with NewResizer
-type Config struct {
+// ResizerConfig is a configuration used with NewResizer
+type ResizerConfig struct {
 	Depth      int  // bits per pixel
 	Input      int  // input size in pixels
 	Output     int  // output size in pixels
@@ -31,7 +31,7 @@ type scaler func(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dstPitch, srcPitch int)
 
 type context struct {
-	cfg     Config
+	cfg     ResizerConfig
 	kernels []kernel
 	scaler  scaler
 }
@@ -75,7 +75,7 @@ func getVerticalScaler(taps int) scaler {
 // NewResize returns a new resizer
 // cfg = resize configuration
 // filter = filter used for computing weights
-func NewResize(cfg *Config, filter Filter) Resizer {
+func NewResize(cfg *ResizerConfig, filter Filter) Resizer {
 	ctx := context{
 		cfg: *cfg,
 	}
