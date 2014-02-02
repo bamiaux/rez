@@ -140,6 +140,40 @@ func TestInterlacedFail(t *testing.T) {
 	convert(t, src, raw, true, NewBicubicFilter())
 }
 
+func testDegradation(t *testing.T, w, h int, interlaced bool, filter Filter) {
+	src := readImage(t, "testdata/lenna.jpg")
+	dst := image.NewYCbCr(image.Rect(0, 0, w, h), image.YCbCrSubsampleRatio444)
+	fwd := prepare(t, dst, src, interlaced, filter)
+	bwd := prepare(t, src, dst, interlaced, filter)
+	for i := 0; i < 32; i++ {
+		err := fwd.Convert(dst, src)
+		expect(t, err, nil)
+		err = bwd.Convert(src, dst)
+		expect(t, err, nil)
+	}
+	ref := readImage(t, "testdata/lenna.jpg")
+	psnrs, err := Psnr(ref, src)
+	expect(t, err, nil)
+	if false {
+		name := fmt.Sprintf("testdata/degraded-%vx%v-%v-%v.png", w, h, toInterlacedString(interlaced), filter.Name())
+		writeImage(t, name, src)
+	}
+	for i, v := range psnrs {
+		min := float64(22)
+		if i > 0 {
+			min = 30
+		}
+		expect(t, v > min, true)
+	}
+}
+
+func TestDegradations(t *testing.T) {
+	for _, f := range filters {
+		testDegradation(t, 256+1, 256+1, false, f)
+		testDegradation(t, 256+2, 256+2, true, f)
+	}
+}
+
 type BenchType struct {
 	win, hin   int
 	wout, hout int
