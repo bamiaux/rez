@@ -52,13 +52,14 @@ func h8scaleN(dst, src []byte, cof []int16, off []int,
 	si := 0
 	for y := 0; y < height; y++ {
 		c := cof
-		for x := range dst[di : di+width] {
-			xoff := si + off[x]
+		s := src[si:]
+		d := dst[di:]
+		for x, xoff := range off[:width] {
 			pix := 0
-			for i, d := range src[xoff : xoff+taps] {
-				pix += int(d) * int(c[i])
+			for i, v := range s[xoff : xoff+taps] {
+				pix += int(v) * int(c[i])
 			}
-			dst[di+x] = u8((pix + 1<<(Bits-1)) >> Bits)
+			d[x] = u8((pix + 1<<(Bits-1)) >> Bits)
 			c = c[taps:]
 		}
 		di += dp
@@ -71,12 +72,13 @@ func v8scaleN(dst, src []byte, cof []int16, off []int,
 	di := 0
 	for _, yoff := range off[:height] {
 		src = src[sp*yoff:]
-		for x := range dst[di : di+width] {
+		d := dst[di:]
+		for x := range d[:width] {
 			pix := 0
 			for i, c := range cof[:taps] {
 				pix += int(src[sp*i+x]) * int(c)
 			}
-			dst[di+x] = u8((pix + 1<<(Bits-1)) >> Bits)
+			d[x] = u8((pix + 1<<(Bits-1)) >> Bits)
 		}
 		cof = cof[taps:]
 		di += dp

@@ -14,11 +14,12 @@ func h8scale{{$n}}(dst, src []byte, cof []int16, off []int,
 	si := 0
 	for y := 0; y < height; y++ {
 		c := cof
-		for x := range dst[di : di+width] {
-			xoff := si + off[x]
+		s := src[si:]
+		d := dst[di:]
+		for x, xoff := range off[:width] {
 			pix :={{range $i, $_ := $tab}}{{if gt $i 0}} +
-			{{end}}int(src[xoff+{{$i}}]) * int(c[{{$i}}]){{end}}
-			dst[di+x] = u8((pix + 1<<(Bits-1)) >> Bits)
+			{{end}}int(s[xoff+{{$i}}]) * int(c[{{$i}}]){{end}}
+			d[x] = u8((pix + 1<<(Bits-1)) >> Bits)
 			c = c[{{$n}}:]
 		}
 		di += dp
@@ -31,10 +32,11 @@ func v8scale{{$n}}(dst, src []byte, cof []int16, off []int,
 	di := 0
 	for _, yoff := range off[:height] {
 		src = src[sp*yoff:]
-		for x := range dst[di : di+width] {
+		d := dst[di:]
+		for x := range d[:width] {
 			pix:={{range $i, $_ := $tab}}{{if gt $i 0}} +
 			{{end}}int(src[sp*{{$i}}+x]) * int(cof[{{$i}}]){{end}}
-			dst[di+x] = u8((pix + 1<<(Bits-1)) >> Bits)
+			d[x] = u8((pix + 1<<(Bits-1)) >> Bits)
 		}
 		cof = cof[{{$n}}:]
 		di += dp
