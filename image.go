@@ -241,7 +241,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 	return ctx, nil
 }
 
-// GetRatio returns a ChromaRation from an image.YCbCrSubsampleRatio
+// GetRatio returns a ChromaRatio from an image.YCbCrSubsampleRatio
 func GetRatio(value image.YCbCrSubsampleRatio) ChromaRatio {
 	switch value {
 	case image.YCbCrSubsampleRatio420:
