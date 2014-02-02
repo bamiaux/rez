@@ -49,22 +49,11 @@ func writeImage(t Tester, name string, img image.Image) {
 	expect(t, err, nil)
 }
 
-func prepare(t Tester, dst, src *image.YCbCr, interlaced bool, filter Filter) Converter {
-	cfg := ConverterConfig{
-		Input: Descriptor{
-			Width:      src.Rect.Dx(),
-			Height:     src.Rect.Dy(),
-			Ratio:      GetRatio(src.SubsampleRatio),
-			Interlaced: interlaced,
-		},
-		Output: Descriptor{
-			Width:      dst.Rect.Dx(),
-			Height:     dst.Rect.Dy(),
-			Ratio:      GetRatio(dst.SubsampleRatio),
-			Interlaced: interlaced,
-		},
-	}
-	converter, err := NewConverter(&cfg, filter)
+func prepare(t Tester, dst, src image.Image, interlaced bool, filter Filter) Converter {
+	cfg, err := PrepareConversion(dst, src)
+	cfg.Input.Interlaced = interlaced
+	cfg.Output.Interlaced = interlaced
+	converter, err := NewConverter(cfg, filter)
 	expect(t, err, nil)
 	return converter
 }

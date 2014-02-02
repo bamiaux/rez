@@ -316,24 +316,34 @@ func (ctx *converterContext) Convert(output, input image.Image) error {
 	return nil
 }
 
+// PrepareConversion returns a ConverterConfig properly set for a conversion
+// from input images to output images
+// Returns an error if the conversion is not possible
+func PrepareConversion(output, input image.Image) (*ConverterConfig, error) {
+	_, src, err := parseYuv(input, false)
+	if err != nil {
+		return nil, err
+	}
+	_, dst, err := parseYuv(output, false)
+	if err != nil {
+		return nil, err
+	}
+	return &ConverterConfig{
+		Input:  *src,
+		Output: *dst,
+	}, nil
+}
+
 // Convert converts an input image into output, applying any color conversion
 // and/or resizing, using the input filter for interpolation.
 // Note that if you plan to do the same conversion over and over, it is faster
 // to use a Converter interface
 func Convert(output, input image.Image, filter Filter) error {
-	_, src, err := parseYuv(input, false)
+	cfg, err := PrepareConversion(output, input)
 	if err != nil {
 		return err
 	}
-	_, dst, err := parseYuv(output, false)
-	if err != nil {
-		return err
-	}
-	cfg := ConverterConfig{
-		Input:  *src,
-		Output: *dst,
-	}
-	converter, err := NewConverter(&cfg, filter)
+	converter, err := NewConverter(cfg, filter)
 	if err != nil {
 		return err
 	}
