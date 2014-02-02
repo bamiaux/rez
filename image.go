@@ -192,30 +192,39 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 		ConverterConfig: *cfg,
 	}
 	size := 0
+	group := sync.WaitGroup{}
 	for i := uint(0); i < maxPlanes; i++ {
 		win := cfg.Input.GetWidth(i)
 		hin := cfg.Input.GetHeight(i)
 		wout := cfg.Output.GetWidth(i)
 		hout := cfg.Output.GetHeight(i)
 		if win != wout {
-			ctx.wrez[i] = NewResize(&ResizerConfig{
-				Depth:      8,
-				Input:      win,
-				Output:     wout,
-				Vertical:   false,
-				Interlaced: false,
-				Threads:    cfg.Threads,
-			}, filter)
+			group.Add(1)
+			go func(i uint) {
+				defer group.Done()
+				ctx.wrez[i] = NewResize(&ResizerConfig{
+					Depth:      8,
+					Input:      win,
+					Output:     wout,
+					Vertical:   false,
+					Interlaced: false,
+					Threads:    cfg.Threads,
+				}, filter)
+			}(i)
 		}
 		if hin != hout {
-			ctx.hrez[i] = NewResize(&ResizerConfig{
-				Depth:      8,
-				Input:      hin,
-				Output:     hout,
-				Vertical:   true,
-				Interlaced: cfg.Input.Interlaced,
-				Threads:    cfg.Threads,
-			}, filter)
+			group.Add(1)
+			go func(i uint) {
+				defer group.Done()
+				ctx.hrez[i] = NewResize(&ResizerConfig{
+					Depth:      8,
+					Input:      hin,
+					Output:     hout,
+					Vertical:   true,
+					Interlaced: cfg.Input.Interlaced,
+					Threads:    cfg.Threads,
+				}, filter)
+			}(i)
 		}
 		if win != wout && hin != hout {
 			p := &Plane{
@@ -238,6 +247,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 			}
 		}
 	}
+	group.Wait()
 	return ctx, nil
 }
 
