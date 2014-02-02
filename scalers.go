@@ -4,6 +4,10 @@
 
 package rez
 
+import (
+	"math"
+)
+
 const (
 	Bits = 14
 )
@@ -26,6 +30,22 @@ func copyPlane(dst, src []byte, width, height, dp, sp int) {
 		dst_idx += dp
 		src_idx += sp
 	}
+}
+
+func psnrPlane(dst, src []byte, width, height, dp, sp int) float64 {
+	mse := 0
+	dst_idx := 0
+	src_idx := 0
+	for y := 0; y < height; y++ {
+		for x, v := range src[src_idx : src_idx+width] {
+			n := int(v) - int(dst[dst_idx+x])
+			mse += n * n
+		}
+		dst_idx += dp
+		src_idx += sp
+	}
+	fmse := float64(mse) / float64(width*height)
+	return 10 * math.Log10(255*255/fmse)
 }
 
 func h8scaleN(dst, src []byte, cof []int16, off []int,

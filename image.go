@@ -310,3 +310,23 @@ func Convert(output, input image.Image, filter Filter) error {
 	}
 	return converter.Convert(output, input)
 }
+
+func Psnr(a, b image.Image) ([]float64, error) {
+	psnrs := []float64{}
+	for i := uint(0); i < maxPlanes; i++ {
+		aplane, err := parse(a, i, false)
+		if err != nil {
+			return nil, err
+		}
+		bplane, err := parse(b, i, false)
+		if err != nil {
+			return nil, err
+		}
+		if aplane.Width != bplane.Width || aplane.Height != bplane.Height {
+			return nil, fmt.Errorf("invalid resolutions %vx%v != %vx%v\n",
+				aplane.Width, aplane.Height, bplane.Width, bplane.Height)
+		}
+		psnrs = append(psnrs, psnrPlane(aplane.Data, bplane.Data, aplane.Width, aplane.Height, aplane.Pitch, bplane.Pitch))
+	}
+	return psnrs, nil
+}
