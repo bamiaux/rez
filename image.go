@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package rez provides image resizing for go
+Package rez provides image resizing for go.
 
 Currently, rez is capable to convert any ycbcr image to any other, applying
 any resizing necessary, including changing the chroma subsampling ratio.
