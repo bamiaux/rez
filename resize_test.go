@@ -188,7 +188,6 @@ var (
 		{640, 480, 1920, 1080, true, NewBicubicFilter()},
 		{640, 480, 1920, 1080, true, NewBicubicFilter()},
 		{512, 512, 512, 512, true, NewBilinearFilter()},
-		{512, 512, 512, 512, true, NewLanczosFilter(3)},
 	}
 )
 
@@ -205,18 +204,16 @@ func benchSpeed(b *testing.B, bt BenchType) {
 	}
 }
 
-func BenchmarkBilinearUp(b *testing.B)   { benchSpeed(b, benchs[0]) }
-func BenchmarkBicubicUp(b *testing.B)    { benchSpeed(b, benchs[1]) }
-func BenchmarkLanczosUp(b *testing.B)    { benchSpeed(b, benchs[2]) }
-func BenchmarkBilinearDown(b *testing.B) { benchSpeed(b, benchs[3]) }
-func BenchmarkBicubicDown(b *testing.B)  { benchSpeed(b, benchs[4]) }
-func BenchmarkLanczosDown(b *testing.B)  { benchSpeed(b, benchs[5]) }
-func BenchmarkBicubicIUp(b *testing.B)   { benchSpeed(b, benchs[6]) }
-func BenchmarkBicubicIDown(b *testing.B) { benchSpeed(b, benchs[7]) }
+func BenchmarkImageBilinearUp(b *testing.B)   { benchSpeed(b, benchs[0]) }
+func BenchmarkImageBicubicUp(b *testing.B)    { benchSpeed(b, benchs[1]) }
+func BenchmarkImageLanczosUp(b *testing.B)    { benchSpeed(b, benchs[2]) }
+func BenchmarkImageBilinearDown(b *testing.B) { benchSpeed(b, benchs[3]) }
+func BenchmarkImageBicubicDown(b *testing.B)  { benchSpeed(b, benchs[4]) }
+func BenchmarkImageLanczosDown(b *testing.B)  { benchSpeed(b, benchs[5]) }
+func BenchmarkImageBicubicIUp(b *testing.B)   { benchSpeed(b, benchs[6]) }
+func BenchmarkImageBicubicIDown(b *testing.B) { benchSpeed(b, benchs[7]) }
 
-// filter should not matter
-func BenchmarkBicubicCopy(b *testing.B) { benchSpeed(b, benchs[8]) }
-func BenchmarkLanczosCopy(b *testing.B) { benchSpeed(b, benchs[9]) }
+func BenchmarkCopy(b *testing.B) { benchSpeed(b, benchs[8]) }
 
 func benchScaler(b *testing.B, vertical bool, taps int) {
 	n := 96
