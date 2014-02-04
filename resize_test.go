@@ -217,3 +217,42 @@ func BenchmarkBicubicIDown(b *testing.B) { benchSpeed(b, benchs[7]) }
 // filter should not matter
 func BenchmarkBicubicCopy(b *testing.B) { benchSpeed(b, benchs[8]) }
 func BenchmarkLanczosCopy(b *testing.B) { benchSpeed(b, benchs[9]) }
+
+func benchScaler(b *testing.B, vertical bool, taps int) {
+	n := 96
+	src := make([]byte, n*n)
+	dst := make([]byte, n*n*2)
+	cfg := ResizerConfig{
+		Input:      n,
+		Output:     n * 2,
+		Vertical:   vertical,
+		Interlaced: false,
+		Threads:    1,
+	}
+	dp := n
+	if !vertical {
+		dp *= 2
+	}
+	resizer := NewResize(&cfg, NewLanczosFilter(taps>>1))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		resizer.Resize(dst, src, n, n, dp, n)
+	}
+
+}
+
+// synthetic benchmarks
+func BenchmarkVerticalScaler2(b *testing.B)    { benchScaler(b, true, 2) }
+func BenchmarkVerticalScaler4(b *testing.B)    { benchScaler(b, true, 4) }
+func BenchmarkVerticalScaler6(b *testing.B)    { benchScaler(b, true, 6) }
+func BenchmarkVerticalScaler8(b *testing.B)    { benchScaler(b, true, 8) }
+func BenchmarkVerticalScaler10(b *testing.B)   { benchScaler(b, true, 10) }
+func BenchmarkVerticalScaler12(b *testing.B)   { benchScaler(b, true, 12) }
+func BenchmarkVerticalScalerN(b *testing.B)    { benchScaler(b, true, 14) }
+func BenchmarkHorizontalScaler2(b *testing.B)  { benchScaler(b, false, 2) }
+func BenchmarkHorizontalScaler4(b *testing.B)  { benchScaler(b, false, 4) }
+func BenchmarkHorizontalScaler6(b *testing.B)  { benchScaler(b, false, 6) }
+func BenchmarkHorizontalScaler8(b *testing.B)  { benchScaler(b, false, 8) }
+func BenchmarkHorizontalScaler10(b *testing.B) { benchScaler(b, false, 10) }
+func BenchmarkHorizontalScaler12(b *testing.B) { benchScaler(b, false, 12) }
+func BenchmarkHorizontalScalerN(b *testing.B)  { benchScaler(b, false, 14) }
