@@ -75,13 +75,12 @@ func v8scaleN(dst, src []byte, cof []int16, off []int,
 	di := 0
 	for _, yoff := range off[:height] {
 		src = src[sp*yoff:]
-		d := dst[di:]
-		for x := range d[:width] {
+		for x := range dst[di : di+width] {
 			pix := 0
 			for i, c := range cof[:taps] {
-				pix += int(src[sp*i+x]) * int(c)
+				pix += int(c) * int(src[sp*i+x])
 			}
-			d[x] = u8((pix + 1<<(Bits-1)) >> Bits)
+			dst[di+x] = u8((pix + 1<<(Bits-1)) >> Bits)
 		}
 		cof = cof[taps:]
 		di += dp
