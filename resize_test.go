@@ -80,6 +80,13 @@ var (
 	}
 )
 
+func TestU8(t *testing.T) {
+	expect(t, u8(-1), byte(0))
+	expect(t, u8(0), byte(0))
+	expect(t, u8(255), byte(255))
+	expect(t, u8(256), byte(255))
+}
+
 func TestConvert(t *testing.T) {
 	t.Skip("skipping slow test")
 	sizes := []struct{ w, h int }{
