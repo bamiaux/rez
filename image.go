@@ -5,8 +5,11 @@
 /*
 Package rez provides image resizing for go.
 
-Currently, rez is capable to convert any ycbcr image to any other, applying
-any resizing necessary, including changing the chroma subsampling ratio.
+Featuring:
+ - YCbCr resizes
+ - YCbCr Chroma subsample ratio conversions
+ - RGB resizes
+ - Optional interlaced-aware resizes
 
 The easiest way to use it is:
 
@@ -60,10 +63,12 @@ const (
 
 // Descriptor describes an image properties
 type Descriptor struct {
-	Width      int
-	Height     int
-	Ratio      ChromaRatio
-	Interlaced bool
+	Width      int         // width in pixels
+	Height     int         // height in pixels
+	Ratio      ChromaRatio // chroma ratio
+	Pack       int         // pixels per pack
+	Interlaced bool        // progressive or interlaced
+	Planes     int         // number of planes
 }
 
 // Check returns whether the descriptor is valid
@@ -87,6 +92,9 @@ func (d *Descriptor) Check() error {
 	if d.Interlaced {
 		h *= 2
 	}
+	if d.Pack < 1 || d.Pack > 4 {
+		return fmt.Errorf("invalid pack value %v", d.Pack)
+	}
 	if d.Width%w != 0 {
 		return fmt.Errorf("width must be mod %v", w)
 	}
@@ -97,12 +105,12 @@ func (d *Descriptor) Check() error {
 }
 
 // GetWidth returns the width in pixels for the input plane
-func (d *Descriptor) GetWidth(plane uint) int {
+func (d *Descriptor) GetWidth(plane int) int {
+	if plane < 0 || plane+1 > maxPlanes {
+		panic(fmt.Errorf("invalid plane %v", plane))
+	}
 	if plane == 0 {
 		return d.Width
-	}
-	if plane > 2 {
-		panic(fmt.Errorf("invalid plane %v", plane))
 	}
 	switch d.Ratio {
 	case Ratio411:
@@ -116,12 +124,12 @@ func (d *Descriptor) GetWidth(plane uint) int {
 }
 
 // GetHeight returns the height in pixels for the input plane
-func (d *Descriptor) GetHeight(plane uint) int {
+func (d *Descriptor) GetHeight(plane int) int {
+	if plane < 0 || plane+1 > maxPlanes {
+		panic(fmt.Errorf("invalid plane %v", plane))
+	}
 	if plane == 0 {
 		return d.Height
-	}
-	if plane > 2 {
-		panic(fmt.Errorf("invalid plane %v", plane))
 	}
 	switch d.Ratio {
 	case Ratio411, Ratio422, Ratio444:
@@ -149,6 +157,7 @@ type Plane struct {
 	Width  int    // width in pixels
 	Height int    // height in pixels
 	Pitch  int    // pitch in bytes
+	Pack   int    // pixels per pack
 }
 
 type converterContext struct {
@@ -165,8 +174,36 @@ func toInterlacedString(interlaced bool) string {
 	return "progressive"
 }
 
+func toPackedString(pack int) string {
+	return fmt.Sprintf("%v-packed", pack)
+}
+
 func align(value, align int) int {
 	return (value + align - 1) & -align
+}
+
+func checkConversion(dst, src *Descriptor) error {
+	if err := src.Check(); err != nil {
+		return fmt.Errorf("invalid input format: %v", err)
+	}
+	if err := dst.Check(); err != nil {
+		return fmt.Errorf("invalid output format: %v", err)
+	}
+	if src.Interlaced != dst.Interlaced {
+		return fmt.Errorf("unable to convert %v input to %v output",
+			toInterlacedString(src.Interlaced),
+			toInterlacedString(dst.Interlaced))
+	}
+	if src.Pack != dst.Pack {
+		return fmt.Errorf("unable to convert %v input to %v output",
+			toPackedString(src.Pack),
+			toPackedString(dst.Pack))
+	}
+	if src.Planes != dst.Planes {
+		return fmt.Errorf("unable to convert %v planes to %v planes",
+			src.Planes, dst.Planes)
+	}
+	return nil
 }
 
 // NewConverter returns a Converter interface
@@ -174,16 +211,9 @@ func align(value, align int) int {
 // filter = filter used for resizing
 // Returns an error if the conversion is invalid or not implemented
 func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
-	if err := cfg.Input.Check(); err != nil {
+	err := checkConversion(&cfg.Output, &cfg.Input)
+	if err != nil {
 		return nil, err
-	}
-	if err := cfg.Output.Check(); err != nil {
-		return nil, err
-	}
-	if cfg.Input.Interlaced != cfg.Output.Interlaced {
-		return nil, fmt.Errorf("unable to convert %v input to %v output",
-			toInterlacedString(cfg.Input.Interlaced),
-			toInterlacedString(cfg.Output.Interlaced))
 	}
 	if cfg.Threads == 0 {
 		cfg.Threads = runtime.GOMAXPROCS(0)
@@ -193,14 +223,14 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 	}
 	size := 0
 	group := sync.WaitGroup{}
-	for i := uint(0); i < maxPlanes; i++ {
+	for i := 0; i < cfg.Output.Planes; i++ {
 		win := cfg.Input.GetWidth(i)
 		hin := cfg.Input.GetHeight(i)
 		wout := cfg.Output.GetWidth(i)
 		hout := cfg.Output.GetHeight(i)
 		if win != wout {
 			group.Add(1)
-			go func(i uint) {
+			go func(i int) {
 				defer group.Done()
 				ctx.wrez[i] = NewResize(&ResizerConfig{
 					Depth:      8,
@@ -208,20 +238,22 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 					Output:     wout,
 					Vertical:   false,
 					Interlaced: false,
+					Pack:       cfg.Input.Pack,
 					Threads:    cfg.Threads,
 				}, filter)
 			}(i)
 		}
 		if hin != hout {
 			group.Add(1)
-			go func(i uint) {
+			go func(i int) {
 				defer group.Done()
 				ctx.hrez[i] = NewResize(&ResizerConfig{
 					Depth:      8,
 					Input:      hin,
 					Output:     hout,
 					Vertical:   true,
-					Interlaced: cfg.Input.Interlaced,
+					Interlaced: cfg.Output.Interlaced,
+					Pack:       cfg.Output.Pack,
 					Threads:    cfg.Threads,
 				}, filter)
 			}(i)
@@ -230,7 +262,8 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 			p := &Plane{
 				Width:  win,
 				Height: hout,
-				Pitch:  align(win, 16),
+				Pitch:  align(win*cfg.Input.Pack, 16),
+				Pack:   cfg.Input.Pack,
 			}
 			size += p.Pitch * p.Height
 			ctx.buffer[i] = p
@@ -239,9 +272,9 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 	if size != 0 {
 		buffer := make([]byte, size)
 		idx := 0
-		for i := uint(0); i < maxPlanes; i++ {
+		for i := 0; i < cfg.Output.Planes; i++ {
 			if p := ctx.buffer[i]; p != nil {
-				size := p.Pitch*(p.Height-1) + p.Width
+				size := p.Pitch*(p.Height-1) + p.Width*p.Pack
 				p.Data = buffer[idx : idx+size]
 				idx += p.Pitch * p.Height
 			}
@@ -266,40 +299,83 @@ func GetRatio(value image.YCbCrSubsampleRatio) ChromaRatio {
 	return Ratio444
 }
 
-func parseYuv(data image.Image, interlaced bool) (*image.YCbCr, *Descriptor, error) {
-	yuv, ok := data.(*image.YCbCr)
-	if !ok {
-		return nil, nil, fmt.Errorf("unsupported image format")
+func inspect(data image.Image, interlaced bool) (*Descriptor, []Plane, error) {
+	switch t := data.(type) {
+	case *image.YCbCr:
+		d, p := inspectYuv(t, interlaced)
+		return d, p, nil
+	case *image.RGBA:
+		d, p := inspectRgb(t, interlaced)
+		return d, p, nil
 	}
-	return yuv, &Descriptor{
+	return nil, nil, fmt.Errorf("unknown image format")
+}
+
+func getYuvDescriptor(yuv *image.YCbCr, interlaced bool) Descriptor {
+	return Descriptor{
 		Width:      yuv.Rect.Dx(),
 		Height:     yuv.Rect.Dy(),
 		Ratio:      GetRatio(yuv.SubsampleRatio),
 		Interlaced: interlaced,
-	}, nil
+		Pack:       1,
+		Planes:     3,
+	}
 }
 
-func parse(data image.Image, plane uint, interlaced bool) (*Plane, error) {
-	yuv, d, err := parseYuv(data, interlaced)
-	if err != nil {
-		return nil, err
+func getRgbDescriptor(rgb *image.RGBA, interlaced bool) Descriptor {
+	return Descriptor{
+		Width:      rgb.Rect.Dx(),
+		Height:     rgb.Rect.Dy(),
+		Ratio:      Ratio444,
+		Interlaced: interlaced,
+		Pack:       4,
+		Planes:     1,
 	}
-	p := &Plane{
-		Width:  d.GetWidth(plane),
-		Height: d.GetHeight(plane),
+}
+
+func getYuvPlanes(yuv *image.YCbCr, d *Descriptor) []Plane {
+	planes := []Plane{}
+	for i := 0; i < maxPlanes; i++ {
+		p := Plane{
+			Width:  d.GetWidth(i),
+			Height: d.GetHeight(i),
+			Pack:   d.Pack,
+		}
+		switch i {
+		case 0:
+			p.Pitch = yuv.YStride
+			p.Data = yuv.Y[yuv.YOffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
+		case 1:
+			p.Pitch = yuv.CStride
+			p.Data = yuv.Cb[yuv.COffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
+		case 2:
+			p.Pitch = yuv.CStride
+			p.Data = yuv.Cr[yuv.COffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
+		}
+		planes = append(planes, p)
 	}
-	switch plane {
-	case 0:
-		p.Pitch = yuv.YStride
-		p.Data = yuv.Y[yuv.YOffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
-	case 1:
-		p.Pitch = yuv.CStride
-		p.Data = yuv.Cb[yuv.COffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
-	case 2:
-		p.Pitch = yuv.CStride
-		p.Data = yuv.Cr[yuv.COffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
+	return planes
+}
+
+func getRgbPlane(rgb *image.RGBA, d *Descriptor) []Plane {
+	p := Plane{
+		Width:  d.GetWidth(0),
+		Height: d.GetHeight(0),
+		Pack:   d.Pack,
+		Pitch:  rgb.Stride,
 	}
-	return p, nil
+	p.Data = rgb.Pix[rgb.PixOffset(0, 0) : p.Pitch*(p.Height-1)+p.Width*p.Pack]
+	return []Plane{p}
+}
+
+func inspectYuv(yuv *image.YCbCr, interlaced bool) (*Descriptor, []Plane) {
+	d := getYuvDescriptor(yuv, interlaced)
+	return &d, getYuvPlanes(yuv, &d)
+}
+
+func inspectRgb(rgb *image.RGBA, interlaced bool) (*Descriptor, []Plane) {
+	d := getRgbDescriptor(rgb, interlaced)
+	return &d, getRgbPlane(rgb, &d)
 }
 
 func resizePlane(group *sync.WaitGroup, dst, src, buf *Plane, hrez, wrez Resizer) {
@@ -317,29 +393,27 @@ func resizePlane(group *sync.WaitGroup, dst, src, buf *Plane, hrez, wrez Resizer
 		wrez.Resize(dst.Data, wsrc.Data, wsrc.Width, wsrc.Height, dst.Pitch, wsrc.Pitch)
 	}
 	if hrez == nil && wrez == nil {
-		copyPlane(dst.Data, src.Data, src.Width, src.Height, dst.Pitch, src.Pitch)
+		copyPlane(dst.Data, src.Data, src.Width*src.Pack, src.Height, dst.Pitch, src.Pitch)
 	}
 }
 
 func (ctx *converterContext) Convert(output, input image.Image) error {
-	srcs := [maxPlanes]*Plane{}
-	dsts := [maxPlanes]*Plane{}
-	for i := uint(0); i < maxPlanes; i++ {
-		src, err := parse(input, i, ctx.Input.Interlaced)
-		if err != nil {
-			return err
-		}
-		dst, err := parse(output, i, ctx.Output.Interlaced)
-		if err != nil {
-			return err
-		}
-		srcs[i] = src
-		dsts[i] = dst
+	id, src, err := inspect(input, ctx.Input.Interlaced)
+	if err != nil {
+		return err
+	}
+	od, dst, err := inspect(output, ctx.Output.Interlaced)
+	if err != nil {
+		return err
+	}
+	err = checkConversion(od, id)
+	if err != nil {
+		return err
 	}
 	group := sync.WaitGroup{}
-	for i := uint(0); i < maxPlanes; i++ {
+	for i := 0; i < ctx.Input.Planes; i++ {
 		group.Add(1)
-		go resizePlane(&group, dsts[i], srcs[i], ctx.buffer[i], ctx.hrez[i], ctx.wrez[i])
+		go resizePlane(&group, &dst[i], &src[i], ctx.buffer[i], ctx.hrez[i], ctx.wrez[i])
 	}
 	group.Wait()
 	return nil
@@ -349,11 +423,15 @@ func (ctx *converterContext) Convert(output, input image.Image) error {
 // from input images to output images
 // Returns an error if the conversion is not possible
 func PrepareConversion(output, input image.Image) (*ConverterConfig, error) {
-	_, src, err := parseYuv(input, false)
+	src, _, err := inspect(input, false)
 	if err != nil {
 		return nil, err
 	}
-	_, dst, err := parseYuv(output, false)
+	dst, _, err := inspect(output, false)
+	if err != nil {
+		return nil, err
+	}
+	err = checkConversion(dst, src)
 	if err != nil {
 		return nil, err
 	}
@@ -383,20 +461,19 @@ func Convert(output, input image.Image, filter Filter) error {
 // Only ycbcr is currently supported
 func Psnr(a, b image.Image) ([]float64, error) {
 	psnrs := []float64{}
-	for i := uint(0); i < maxPlanes; i++ {
-		aplane, err := parse(a, i, false)
-		if err != nil {
-			return nil, err
-		}
-		bplane, err := parse(b, i, false)
-		if err != nil {
-			return nil, err
-		}
-		if aplane.Width != bplane.Width || aplane.Height != bplane.Height {
-			return nil, fmt.Errorf("invalid resolutions %vx%v != %vx%v\n",
-				aplane.Width, aplane.Height, bplane.Width, bplane.Height)
-		}
-		psnrs = append(psnrs, psnrPlane(aplane.Data, bplane.Data, aplane.Width, aplane.Height, aplane.Pitch, bplane.Pitch))
+	id, src, err := inspect(a, false)
+	if err != nil {
+		return nil, err
+	}
+	od, dst, err := inspect(b, false)
+	if err != nil {
+		return nil, err
+	}
+	if *id != *od {
+		return nil, fmt.Errorf("unable to psnr different formats")
+	}
+	for i := 0; i < len(dst); i++ {
+		psnrs = append(psnrs, psnrPlane(src[i].Data, dst[i].Data, src[i].Width*src[i].Pack, src[i].Height, src[i].Pitch, dst[i].Pitch))
 	}
 	return psnrs, nil
 }

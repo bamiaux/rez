@@ -124,9 +124,39 @@ func makeKernel(cfg *ResizerConfig, filter Filter, idx uint) kernel {
 	coeffs, offsets := makeIntegerKernel(taps, size, cof, sums, pos, field, idx)
 	//coeffs, offsets = reduceKernel(coeffs, offsets, taps, size)
 	if cfg.Vertical {
-		for i := size - 1; i > 0; i-- {
+		for i := len(offsets) - 1; i > 0; i-- {
 			offsets[i] = offsets[i] - offsets[i-1]
 		}
+
+	} else if cfg.Pack > 1 {
+		coeffs, offsets, taps = unpack(coeffs, offsets, taps, cfg.Pack)
 	}
 	return kernel{coeffs, offsets, taps}
+}
+
+func unpack(coeffs []int16, offsets []int, taps, pack int) ([]int16, []int, int) {
+	cof := make([]int16, len(coeffs)*pack*pack)
+	off := make([]int, len(offsets)*pack)
+	di := 0
+	ci := 0
+	oi := 0
+	buf := make([]int16, pack*taps*2)
+	zero := buf[:pack*taps]
+	next := buf[pack*taps:]
+	for _, offset := range offsets {
+		copy(next, zero)
+		for i := 0; i < taps; i++ {
+			next[i*pack] = coeffs[ci+i]
+		}
+		for i := 0; i < pack; i++ {
+			off[oi+i] = offset * pack
+			copy(cof[di+pack*taps*i:], next)
+			copy(next[i+1:], next[i:])
+			copy(next[:i+1], zero)
+		}
+		di += taps * pack * pack
+		ci += taps
+		oi += pack
+	}
+	return cof, off, taps * pack
 }

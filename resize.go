@@ -15,6 +15,7 @@ type ResizerConfig struct {
 	Output     int  // output size in pixels
 	Vertical   bool // true for vertical resizes
 	Interlaced bool // true if input/output is interlaced
+	Pack       int  // pixels per pack [default=1]
 	Threads    int  // number of threads, [default=0]
 }
 
@@ -80,6 +81,9 @@ func NewResize(cfg *ResizerConfig, filter Filter) Resizer {
 		cfg: *cfg,
 	}
 	ctx.cfg.Depth = 8 // only 8-bit for now
+	if ctx.cfg.Pack < 1 {
+		ctx.cfg.Pack = 1
+	}
 	ctx.kernels = []kernel{makeKernel(&ctx.cfg, filter, 0)}
 	ctx.scaler = getHorizontalScaler(ctx.kernels[0].size)
 	if cfg.Vertical {
@@ -153,11 +157,12 @@ func (c *context) Resize(dst, src []byte, width, height, dp, sp int) {
 		dwidth = width
 		dheight = c.cfg.Output >> field
 	}
+	pk := c.cfg.Pack
 	group := sync.WaitGroup{}
 	for i, k := range c.kernels[:1+field] {
 		group.Add(1)
 		go scaleSlices(&group, c.scaler, c.cfg.Vertical, c.cfg.Threads,
-			k.size, dwidth, dheight, dp<<field, sp<<field,
+			k.size, dwidth*pk, dheight, dp<<field, sp<<field,
 			dst[dp*i:], src[sp*i:], k.coeffs, k.offsets)
 	}
 	group.Wait()
