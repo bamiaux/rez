@@ -1,4 +1,4 @@
-#{{.Name}} [![GoDoc](https://godoc.org/{{.Import}}/web?status.png)](https://godoc.org/{{.Import}})
+#{{.Name}} [![GoDoc](https://godoc.org/{{.Import}}/web?status.png)](https://godoc.org/{{.Import}}) [![Build Status](https://travis-ci.org/bamiaux/rez.png)](https://travis-ci.org/bamiaux/rez)
 {{.Synopsis}}
 
 Download:
