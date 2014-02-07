@@ -10,6 +10,7 @@ Featuring:
  - YCbCr Chroma subsample ratio conversions
  - RGB resizes
  - Optional interlaced-aware resizes
+ - Parallel resizes
 
 The easiest way to use it is:
 
@@ -23,6 +24,10 @@ multiple images, the best way is:
     for i := 0; i < N; i++ {
         err := converter.Convert(output[i], input[i])
     }
+
+Note that by default, images are resized in parallel with GOMAXPROCS slices.
+Best performance is obtained when GOMAXPROCS is at least equal to your CPU
+count.
 */
 package rez
 
