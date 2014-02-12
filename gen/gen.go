@@ -34,6 +34,9 @@ type context struct {
 	srcref   Operand
 	dstoff   Operand
 	sum      Operand
+	dstref   Operand
+	count    Operand
+	inner    Operand
 }
 
 func main() {
@@ -44,6 +47,9 @@ func main() {
 	genh8scale(a, &c, 2)
 	genh8scale(a, &c, 4)
 	genh8scale(a, &c, 8)
+	genh8scale(a, &c, 10)
+	genh8scale(a, &c, 12)
+	genh8scale(a, &c, 0)
 	err := a.Flush()
 	if err != nil {
 		log.Fatalln(err)
@@ -73,6 +79,11 @@ func genh8scale(a *Asm, c *context, taps int) {
 	c.srcref = a.PushStack("srcref")
 	c.dstoff = a.PushStack("dstoff")
 	c.sum = a.PushStack("sum")
+	if c.xtaps == 0 {
+		c.dstref = a.PushStack("dstref")
+		c.count = a.PushStack("count")
+		c.inner = a.PushStack("inner")
+	}
 	a.Start()
 	frame(a, c)
 	a.Ret()
@@ -99,6 +110,9 @@ func setup(a *Asm, c *context) {
 	a.Movq(c.srcref, AX)
 	a.Movq(DX, c.taps)
 	a.Subq(DX, Constant(2))
+	if c.xtaps == 0 {
+		a.Movq(c.inner, DX)
+	}
 	a.Pxor(X15, X15)
 	a.Movo(X14, c.hbits)
 }
@@ -144,6 +158,8 @@ func line(a *Asm, c *context) {
 		htaps4(a, c)
 	case 8:
 		htaps8(a, c)
+	case 10, 12, 0:
+		htapsn(a, c)
 	}
 	a.Subq(CX, Constant(1))
 	a.Jne(simdloop)
@@ -173,13 +189,29 @@ func htaps1(a *Asm, c *context, idx int) {
 func asmhtaps(a *Asm, c *context) {
 	htaps1(a, c, 0)
 	a.Movq(c.sum, AX)
-	i := 1
-	for ; i <= c.xtaps-2; i++ {
+	if c.xtaps > 0 {
+		i := 1
+		for ; i <= c.xtaps-2; i++ {
+			htaps1(a, c, i)
+			a.Addq(c.sum, AX)
+		}
 		htaps1(a, c, i)
+		a.Addq(BP, Constant(c.xtaps*2))
+	} else {
+		a.Movq(AX, c.inner)
+		a.Movq(c.count, AX)
+		loop := a.NewLabel("loop")
+		a.Label(loop)
+		htaps1(a, c, 1)
+		a.Addq(SI, Constant(1))
+		a.Addq(BP, Constant(2))
 		a.Addq(c.sum, AX)
+		a.Subq(c.count, Constant(1))
+		a.Jne(loop)
+		htaps1(a, c, 1)
+		a.Addq(BP, Constant(2*2))
+		a.Subq(SI, c.inner)
 	}
-	htaps1(a, c, i)
-	a.Addq(BP, Constant(c.xtaps*2))
 	a.Addq(AX, c.sum)
 	a.Addq(AX, Constant(1<<(14-1)))
 	a.Cmovql(AX, c.zero)
@@ -341,6 +373,72 @@ func htaps8(a *Asm, c *context) {
 	a.Packssdw(X0, X4)
 	a.Packssdw(X1, X2)
 	a.Packuswb(X0, X1)
+	a.Store(Address(DI), X0)
+	a.Addq(DI, Constant(xwidth))
+}
+
+func hloadn(a *Asm, xa, xb, xc, xd SimdRegister) {
+	hload2(a, xa, 0)
+	hload2(a, xb, 1)
+	hload2(a, xc, 2)
+	hload2(a, xd, 3)
+	a.Addq(SI, Constant(2))
+}
+
+func hmaddn(a *Asm, xwidth uint, xa, xb, xc, xd SimdRegister) {
+	a.Punpcklbw(xa, X15)
+	a.Pmaddwd(xa, Address(BP, xwidth*0))
+	a.Punpcklbw(xb, X15)
+	a.Pmaddwd(xb, Address(BP, xwidth*1))
+	a.Punpcklbw(xc, X15)
+	a.Pmaddwd(xc, Address(BP, xwidth*2))
+	a.Punpcklbw(xd, X15)
+	a.Pmaddwd(xd, Address(BP, xwidth*3))
+	a.Addq(BP, Constant(xwidth*4))
+}
+
+func htapsn(a *Asm, c *context) {
+	xwidth := uint(1 << c.xshift)
+	hloadn(a, X0, X1, X2, X3)
+	hmaddn(a, xwidth, X0, X1, X2, X3)
+	// unloop when we know how many taps
+	for i := 1; i*2 < c.xtaps; i++ {
+		hloadn(a, X4, X5, X6, X7)
+		hmaddn(a, xwidth, X4, X5, X6, X7)
+		a.Paddd(X0, X4)
+		a.Paddd(X1, X5)
+		a.Paddd(X2, X6)
+		a.Paddd(X3, X7)
+	}
+	if c.xtaps == 0 {
+		a.Movq(c.dstref, DI)
+		a.Movq(DI, c.inner)
+		loop := a.NewLabel("loop")
+		a.Label(loop)
+		hloadn(a, X4, X5, X6, X7)
+		hmaddn(a, xwidth, X4, X5, X6, X7)
+		a.Paddd(X0, X4)
+		a.Paddd(X1, X5)
+		a.Paddd(X2, X6)
+		a.Paddd(X3, X7)
+		a.Subq(DI, Constant(2))
+		a.Jne(loop)
+		a.Movq(DI, c.dstref)
+	}
+	a.Addq(BX, Constant(xwidth*8))
+	a.Paddd(X0, X14)
+	a.Paddd(X1, X14)
+	a.Paddd(X2, X14)
+	a.Paddd(X3, X14)
+	a.Movq(AX, c.taps)
+	a.Psrad(X0, Constant(14))
+	a.Psrad(X1, Constant(14))
+	a.Psrad(X2, Constant(14))
+	a.Psrad(X3, Constant(14))
+	a.Subq(SI, AX)
+	a.Packssdw(X0, X1)
+	a.Packssdw(X2, X3)
+	a.Packuswb(X0, X2)
 	a.Store(Address(DI), X0)
 	a.Addq(DI, Constant(xwidth))
 }

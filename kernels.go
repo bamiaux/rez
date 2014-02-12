@@ -134,7 +134,41 @@ func makeKernel(cfg *ResizerConfig, filter Filter, idx uint) kernel {
 	} else if cfg.Pack > 1 {
 		coeffs, offsets, taps = unpack(coeffs, offsets, taps, cfg.Pack)
 	}
+	coeffs = prepareCoeffs(cfg, coeffs, size*cfg.Pack, taps)
 	return kernel{coeffs, offsets, taps}
+}
+
+func prepareCoeffs(cfg *ResizerConfig, cof []int16, size, taps int) []int16 {
+	if cfg.Vertical {
+		return cof
+	}
+	if taps == 2 || taps == 4 || taps == 8 {
+		return cof
+	}
+	xwidth := 16
+	dst := make([]int16, len(cof))
+	loop := size / xwidth
+	left := (size - loop*xwidth) * taps
+	si := 0
+	di := 0
+	// instead of having all taps contiguous for one destination pixel,
+	// we store 2 taps per pixel and fill one simd-sized buffer with it, then
+	// fill the second register with the following taps until none are left
+	// this way we don't care about the simd register size, we will always be
+	// able to process N pixels at once
+	for i := 0; i < loop; i++ {
+		for j := 0; j*2 < taps; j++ {
+			for k := 0; k < xwidth; k++ {
+				dst[di+k*2+0] = cof[si+k*taps+0]
+				dst[di+k*2+1] = cof[si+k*taps+1]
+			}
+			di += xwidth * 2
+			si += 2
+		}
+		si = di
+	}
+	copy(dst[di:di+left], cof[si:si+left])
+	return dst
 }
 
 func unpack(coeffs []int16, offsets []int, taps, pack int) ([]int16, []int, int) {
