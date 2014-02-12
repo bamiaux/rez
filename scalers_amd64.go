@@ -4,12 +4,14 @@
 
 package rez
 
-func h8scale2(dst, src []byte, cof []int16, off []int,	taps, width, height, dp, sp int)
-func h8scale4(dst, src []byte, cof []int16, off []int,	taps, width, height, dp, sp int)
+func hasAsm() bool { return true }
+
+func h8scale2(dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int)
+func h8scale4(dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int)
+func h8scale8(dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int)
 
 var (
-	h8scale6  = h8scale6Go
-	h8scale8  = h8scale8Go
+	h8scale6  = h8scale6Go // unused
 	h8scale10 = h8scale10Go
 	h8scale12 = h8scale12Go
 	h8scaleN  = h8scaleNGo

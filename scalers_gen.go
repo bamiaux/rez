@@ -6,6 +6,8 @@
 
 package rez
 
+func hasAsm() bool { return false }
+
 var (
 	h8scale2  = h8scale2Go
 	h8scale4  = h8scale4Go
