@@ -15,12 +15,12 @@ const (
 
 func u8(x int) byte {
 	if x < 0 {
-		return 0
+		x = 0
 	}
 	if x > 0xFF {
-		return 0xFF
+		x = 0xFF
 	}
-	return byte(x & 0xFF)
+	return byte(x)
 }
 
 func copyPlane(dst, src []byte, width, height, dp, sp int) {
