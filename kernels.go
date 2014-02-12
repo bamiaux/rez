@@ -139,6 +139,9 @@ func makeKernel(cfg *ResizerConfig, filter Filter, idx uint) kernel {
 }
 
 func prepareCoeffs(cfg *ResizerConfig, cof []int16, size, taps int) []int16 {
+	if !hasAsm() {
+		return cof
+	}
 	if cfg.Vertical {
 		return cof
 	}
