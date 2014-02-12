@@ -1,0 +1,121 @@
+DATA	zero_0<>+0x00(SB)/8, $0x0000000000000000
+DATA	zero_0<>+0x08(SB)/8, $0x0000000000000000
+GLOBL	zero_0<>(SB), $16
+DATA	hbits_1<>+0x00(SB)/8, $0x0000200000002000
+DATA	hbits_1<>+0x08(SB)/8, $0x0000200000002000
+GLOBL	hbits_1<>(SB), $16
+
+TEXT ·h8scale2(SB),4,$40-136
+		MOVQ	dp+120(FP), BX
+		MOVQ	width+104(FP), CX
+		MOVQ	CX, DX
+		SUBQ	CX, BX
+		SHRQ	$4, CX
+		ANDQ	$15, DX
+		MOVQ	BX, dstoff+-32(SP)
+		MOVQ	CX, simdroll+-8(SP)
+		MOVQ	DX, asmroll+-16(SP)
+		MOVQ	src+24(FP), AX
+		MOVQ	AX, srcref+-24(SP)
+		MOVQ	taps+96(FP), DX
+		SUBQ	$2, DX
+		PXOR	X15, X15
+		MOVO	hbits_1<>(SB), X14
+		MOVQ	src+24(FP), SI
+		MOVQ	dst+0(FP), DI
+yloop_0:
+		MOVQ	off+72(FP), BX
+		MOVQ	cof+48(FP), BP
+		MOVQ	simdroll+-8(SP), CX
+		ORQ	CX, CX
+		JE	nosimdloop_3
+simdloop_1:
+		MOVQ	(BX), AX
+		MOVQ	8(BX), DX
+		PINSRW	$0, (SI)(AX*1), X0
+		PINSRW	$1, (SI)(DX*1), X0
+		MOVQ	16(BX), AX
+		MOVQ	24(BX), DX
+		PINSRW	$2, (SI)(AX*1), X0
+		PINSRW	$3, (SI)(DX*1), X0
+		MOVQ	32(BX), AX
+		MOVQ	40(BX), DX
+		PINSRW	$0, (SI)(AX*1), X1
+		PINSRW	$1, (SI)(DX*1), X1
+		MOVQ	48(BX), AX
+		MOVQ	56(BX), DX
+		PINSRW	$2, (SI)(AX*1), X1
+		PINSRW	$3, (SI)(DX*1), X1
+		MOVQ	64(BX), AX
+		MOVQ	72(BX), DX
+		PINSRW	$0, (SI)(AX*1), X2
+		PINSRW	$1, (SI)(DX*1), X2
+		MOVQ	80(BX), AX
+		MOVQ	88(BX), DX
+		PINSRW	$2, (SI)(AX*1), X2
+		PINSRW	$3, (SI)(DX*1), X2
+		MOVQ	96(BX), AX
+		MOVQ	104(BX), DX
+		PINSRW	$0, (SI)(AX*1), X3
+		PINSRW	$1, (SI)(DX*1), X3
+		MOVQ	112(BX), AX
+		MOVQ	120(BX), DX
+		PINSRW	$2, (SI)(AX*1), X3
+		PINSRW	$3, (SI)(DX*1), X3
+		PUNPCKLBW	X15, X0
+		PUNPCKLBW	X15, X1
+		PUNPCKLBW	X15, X2
+		PUNPCKLBW	X15, X3
+		ADDQ	$128, BX
+		PMADDWL	(BP), X0
+		PMADDWL	16(BP), X1
+		PMADDWL	32(BP), X2
+		PMADDWL	48(BP), X3
+		PADDL	X14, X0
+		PADDL	X14, X1
+		PADDL	X14, X2
+		PADDL	X14, X3
+		ADDQ	$64, BP
+		PSRAL	$14, X0
+		PSRAL	$14, X1
+		PSRAL	$14, X2
+		PSRAL	$14, X3
+		PACKSSLW	X1, X0
+		PACKSSLW	X3, X2
+		PACKUSWB	X2, X0
+		MOVOU	X0, (DI)
+		ADDQ	$16, DI
+		SUBQ	$1, CX
+		JNE	simdloop_1
+nosimdloop_3:
+		MOVQ	asmroll+-16(SP), CX
+		ORQ	CX, CX
+		JE	end_4
+asmloop_2:
+		MOVQ	(BX), DX
+		MOVBQZX	(SI)(DX*1), AX
+		MOVWQSX	(BP), DX
+		IMULQ	DX
+		MOVQ	AX, sum+-40(SP)
+		MOVQ	(BX), DX
+		MOVBQZX	1(SI)(DX*1), AX
+		MOVWQSX	2(BP), DX
+		IMULQ	DX
+		ADDQ	$4, BP
+		ADDQ	sum+-40(SP), AX
+		ADDQ	$8192, AX
+		CMOVQLT	zero_0<>(SB), AX
+		SHRQ	$14, AX
+		ADDQ	$8, BX
+		MOVB	AL, (DI)
+		ADDQ	$1, DI
+		SUBQ	$1, CX
+		JNE	asmloop_2
+end_4:
+		MOVQ	srcref+-24(SP), SI
+		ADDQ	dstoff+-32(SP), DI
+		ADDQ	sp+128(FP), SI
+		MOVQ	SI, srcref+-24(SP)
+		SUBQ	$1, height+112(FP)
+		JNE	yloop_0
+		RET
