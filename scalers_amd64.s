@@ -119,3 +119,160 @@ end_4:
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_0
 		RET
+
+TEXT ·h8scale4(SB),4,$40-136
+		MOVQ	dp+120(FP), BX
+		MOVQ	width+104(FP), CX
+		MOVQ	CX, DX
+		SUBQ	CX, BX
+		SHRQ	$4, CX
+		ANDQ	$15, DX
+		MOVQ	BX, dstoff+-32(SP)
+		MOVQ	CX, simdroll+-8(SP)
+		MOVQ	DX, asmroll+-16(SP)
+		MOVQ	src+24(FP), AX
+		MOVQ	AX, srcref+-24(SP)
+		MOVQ	taps+96(FP), DX
+		SUBQ	$2, DX
+		PXOR	X15, X15
+		MOVO	hbits_1<>(SB), X14
+		MOVQ	src+24(FP), SI
+		MOVQ	dst+0(FP), DI
+yloop_5:
+		MOVQ	off+72(FP), BX
+		MOVQ	cof+48(FP), BP
+		MOVQ	simdroll+-8(SP), CX
+		ORQ	CX, CX
+		JE	nosimdloop_8
+simdloop_6:
+		MOVQ	(BX), AX
+		MOVQ	8(BX), DX
+		MOVL	(SI)(AX*1), X0
+		MOVL	(SI)(DX*1), X1
+		MOVQ	16(BX), AX
+		MOVQ	24(BX), DX
+		MOVL	(SI)(AX*1), X2
+		MOVL	(SI)(DX*1), X3
+		PUNPCKLLQ	X1, X0
+		PUNPCKLLQ	X3, X2
+		MOVQ	32(BX), AX
+		MOVQ	40(BX), DX
+		MOVL	(SI)(AX*1), X4
+		MOVL	(SI)(DX*1), X5
+		MOVQ	48(BX), AX
+		MOVQ	56(BX), DX
+		MOVL	(SI)(AX*1), X6
+		MOVL	(SI)(DX*1), X7
+		PUNPCKLLQ	X5, X4
+		PUNPCKLLQ	X7, X6
+		PUNPCKLBW	X15, X0
+		PMADDWL	(BP), X0
+		PUNPCKLBW	X15, X2
+		PMADDWL	16(BP), X2
+		PUNPCKLBW	X15, X4
+		PMADDWL	32(BP), X4
+		PUNPCKLBW	X15, X6
+		PMADDWL	48(BP), X6
+		MOVO	X0, X1
+		MOVO	X4, X5
+		SHUFPS	$221, X2, X1
+		SHUFPS	$221, X6, X5
+		SHUFPS	$136, X2, X0
+		SHUFPS	$136, X6, X4
+		PADDL	X1, X0
+		PADDL	X5, X4
+		PADDL	X14, X0
+		PADDL	X14, X4
+		PSRAL	$14, X0
+		PSRAL	$14, X4
+		PACKSSLW	X4, X0
+		MOVQ	64(BX), AX
+		MOVQ	72(BX), DX
+		MOVL	(SI)(AX*1), X1
+		MOVL	(SI)(DX*1), X2
+		MOVQ	80(BX), AX
+		MOVQ	88(BX), DX
+		MOVL	(SI)(AX*1), X3
+		MOVL	(SI)(DX*1), X4
+		PUNPCKLLQ	X2, X1
+		PUNPCKLLQ	X4, X3
+		MOVQ	96(BX), AX
+		MOVQ	104(BX), DX
+		MOVL	(SI)(AX*1), X5
+		MOVL	(SI)(DX*1), X6
+		MOVQ	112(BX), AX
+		MOVQ	120(BX), DX
+		MOVL	(SI)(AX*1), X7
+		MOVL	(SI)(DX*1), X2
+		PUNPCKLLQ	X6, X5
+		PUNPCKLLQ	X2, X7
+		ADDQ	$128, BX
+		PUNPCKLBW	X15, X1
+		PMADDWL	64(BP), X1
+		PUNPCKLBW	X15, X3
+		PMADDWL	80(BP), X3
+		PUNPCKLBW	X15, X5
+		PMADDWL	96(BP), X5
+		PUNPCKLBW	X15, X7
+		PMADDWL	112(BP), X7
+		MOVO	X1, X4
+		MOVO	X5, X6
+		SHUFPS	$221, X3, X4
+		SHUFPS	$221, X7, X6
+		SHUFPS	$136, X3, X1
+		SHUFPS	$136, X7, X5
+		PADDL	X4, X1
+		PADDL	X6, X5
+		PADDL	X14, X1
+		PADDL	X14, X5
+		ADDQ	$128, BP
+		PSRAL	$14, X1
+		PSRAL	$14, X5
+		PACKSSLW	X5, X1
+		PACKUSWB	X1, X0
+		MOVOU	X0, (DI)
+		ADDQ	$16, DI
+		SUBQ	$1, CX
+		JNE	simdloop_6
+nosimdloop_8:
+		MOVQ	asmroll+-16(SP), CX
+		ORQ	CX, CX
+		JE	end_9
+asmloop_7:
+		MOVQ	(BX), DX
+		MOVBQZX	(SI)(DX*1), AX
+		MOVWQSX	(BP), DX
+		IMULQ	DX
+		MOVQ	AX, sum+-40(SP)
+		MOVQ	(BX), DX
+		MOVBQZX	1(SI)(DX*1), AX
+		MOVWQSX	2(BP), DX
+		IMULQ	DX
+		ADDQ	AX, sum+-40(SP)
+		MOVQ	(BX), DX
+		MOVBQZX	2(SI)(DX*1), AX
+		MOVWQSX	4(BP), DX
+		IMULQ	DX
+		ADDQ	AX, sum+-40(SP)
+		MOVQ	(BX), DX
+		MOVBQZX	3(SI)(DX*1), AX
+		MOVWQSX	6(BP), DX
+		IMULQ	DX
+		ADDQ	$8, BP
+		ADDQ	sum+-40(SP), AX
+		ADDQ	$8192, AX
+		CMOVQLT	zero_0<>(SB), AX
+		SHRQ	$14, AX
+		ADDQ	$8, BX
+		MOVB	AL, (DI)
+		ADDQ	$1, DI
+		SUBQ	$1, CX
+		JNE	asmloop_7
+end_9:
+		MOVQ	srcref+-24(SP), SI
+		ADDQ	dstoff+-32(SP), DI
+		ADDQ	sp+128(FP), SI
+		MOVQ	SI, srcref+-24(SP)
+		SUBQ	$1, height+112(FP)
+		JNE	yloop_5
+		RET

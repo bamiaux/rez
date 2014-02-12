@@ -42,6 +42,7 @@ func main() {
 	c.zero = a.Data("zero", bytes.Repeat([]byte{0x00}, 16))
 	c.hbits = a.Data("hbits", bytes.Repeat([]byte{0x00, 0x00, 0x20, 0x00}, 4))
 	genh8scale(a, &c, 2)
+	genh8scale(a, &c, 4)
 	err := a.Flush()
 	if err != nil {
 		log.Fatalln(err)
@@ -135,7 +136,12 @@ func line(a *Asm, c *context) {
 
 	// apply simd loops
 	a.Label(simdloop)
-	htaps2(a, c)
+	switch c.xtaps {
+	case 2:
+		htaps2(a, c)
+	case 4:
+		htaps4(a, c)
+	}
 	a.Subq(CX, Constant(1))
 	a.Jne(simdloop)
 
@@ -218,6 +224,61 @@ func htaps2(a *Asm, c *context) {
 	a.Packssdw(X0, X1)
 	a.Packssdw(X2, X3)
 	a.Packuswb(X0, X2)
+	a.Store(Address(DI), X0)
+	a.Addq(DI, Constant(xwidth))
+}
+
+func hload4(a *Asm, xa, xb SimdRegister, idx int, tmpa, tmpb SimdRegister) {
+	a.Movq(AX, Address(BX, (idx*4+0)*8))
+	a.Movq(DX, Address(BX, (idx*4+1)*8))
+	a.Movd(xa, Address(SI, AX))
+	a.Movd(tmpa, Address(SI, DX))
+	a.Movq(AX, Address(BX, (idx*4+2)*8))
+	a.Movq(DX, Address(BX, (idx*4+3)*8))
+	a.Movd(xb, Address(SI, AX))
+	a.Movd(tmpb, Address(SI, DX))
+	a.Punpckldq(xa, tmpa)
+	a.Punpckldq(xb, tmpb)
+}
+
+func hmadd4(a *Asm, xwidth uint, xa, xb, xc, xd SimdRegister, idx uint, tmpa, tmpb SimdRegister) {
+	a.Punpcklbw(xa, X15)
+	a.Pmaddwd(xa, Address(BP, (idx*4+0)*xwidth))
+	a.Punpcklbw(xb, X15)
+	a.Pmaddwd(xb, Address(BP, (idx*4+1)*xwidth))
+	a.Punpcklbw(xc, X15)
+	a.Pmaddwd(xc, Address(BP, (idx*4+2)*xwidth))
+	a.Punpcklbw(xd, X15)
+	a.Pmaddwd(xd, Address(BP, (idx*4+3)*xwidth))
+	a.Movo(tmpa, xa)
+	a.Movo(tmpb, xc)
+	a.Shufps(tmpa, xb, Constant(0xDD))
+	a.Shufps(tmpb, xd, Constant(0xDD))
+	a.Shufps(xa, xb, Constant(0x88))
+	a.Shufps(xc, xd, Constant(0x88))
+	a.Paddd(xa, tmpa)
+	a.Paddd(xc, tmpb)
+	a.Paddd(xa, X14)
+	a.Paddd(xc, X14)
+}
+
+func htaps4(a *Asm, c *context) {
+	hload4(a, X0, X2, 0, X1, X3)
+	hload4(a, X4, X6, 1, X5, X7)
+	xwidth := uint(1 << c.xshift)
+	hmadd4(a, xwidth, X0, X2, X4, X6, 0, X1, X5)
+	a.Psrad(X0, Constant(14))
+	a.Psrad(X4, Constant(14))
+	a.Packssdw(X0, X4)
+	hload4(a, X1, X3, 2, X2, X4)
+	hload4(a, X5, X7, 3, X6, X2)
+	a.Addq(BX, Constant(xwidth*8))
+	hmadd4(a, xwidth, X1, X3, X5, X7, 1, X4, X6)
+	a.Addq(BP, Constant(xwidth*8))
+	a.Psrad(X1, Constant(14))
+	a.Psrad(X5, Constant(14))
+	a.Packssdw(X1, X5)
+	a.Packuswb(X0, X1)
 	a.Store(Address(DI), X0)
 	a.Addq(DI, Constant(xwidth))
 }
