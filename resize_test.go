@@ -249,7 +249,7 @@ var (
 		{1920, 1080, 640, 480, false, false, NewBicubicFilter()},
 		{1920, 1080, 640, 480, false, false, NewLanczosFilter(3)},
 		{640, 480, 1920, 1080, true, false, NewBicubicFilter()},
-		{512, 512, 512, 512, true, false, NewBilinearFilter()},
+		{1920, 1080, 640, 480, true, false, NewBicubicFilter()},
 		{512, 512, 512, 512, true, false, NewBilinearFilter()},
 		{720, 576, 640, 480, false, true, NewBicubicFilter()},
 	}
