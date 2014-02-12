@@ -14,7 +14,7 @@ func h8scale12(dst, src []byte, cof []int16, off []int, taps, width, height, dp,
 func h8scaleN(dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int)
 
 var (
-	h8scale6  = h8scale6Go // unused
+	h8scale6  = h8scaleN
 	v8scale2  = v8scale2Go
 	v8scale4  = v8scale4Go
 	v8scale6  = v8scale6Go
