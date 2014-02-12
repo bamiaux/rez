@@ -6,7 +6,7 @@ package rez
 
 // This file is auto-generated - do not modify
 
-func h8scale2(dst, src []byte, cof []int16, off []int,
+func h8scale2Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -25,7 +25,7 @@ func h8scale2(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale2(dst, src []byte, cof []int16, off []int,
+func v8scale2Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
@@ -41,7 +41,7 @@ func v8scale2(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func h8scale4(dst, src []byte, cof []int16, off []int,
+func h8scale4Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -62,7 +62,7 @@ func h8scale4(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale4(dst, src []byte, cof []int16, off []int,
+func v8scale4Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
@@ -80,7 +80,7 @@ func v8scale4(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func h8scale6(dst, src []byte, cof []int16, off []int,
+func h8scale6Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -103,7 +103,7 @@ func h8scale6(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale6(dst, src []byte, cof []int16, off []int,
+func v8scale6Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
@@ -123,7 +123,7 @@ func v8scale6(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func h8scale8(dst, src []byte, cof []int16, off []int,
+func h8scale8Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -148,7 +148,7 @@ func h8scale8(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale8(dst, src []byte, cof []int16, off []int,
+func v8scale8Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
@@ -170,7 +170,7 @@ func v8scale8(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func h8scale10(dst, src []byte, cof []int16, off []int,
+func h8scale10Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -197,7 +197,7 @@ func h8scale10(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale10(dst, src []byte, cof []int16, off []int,
+func v8scale10Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
@@ -221,7 +221,7 @@ func v8scale10(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func h8scale12(dst, src []byte, cof []int16, off []int,
+func h8scale12Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -250,7 +250,7 @@ func h8scale12(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale12(dst, src []byte, cof []int16, off []int,
+func v8scale12Go(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {

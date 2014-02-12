@@ -49,7 +49,7 @@ func psnrPlane(dst, src []byte, width, height, dp, sp int) float64 {
 	return 10 * math.Log10(255*255/fmse)
 }
 
-func h8scaleN(dst, src []byte, cof []int16, off []int,
+func h8scaleNGo(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -70,7 +70,7 @@ func h8scaleN(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scaleN(dst, src []byte, cof []int16, off []int,
+func v8scaleNGo(dst, src []byte, cof []int16, off []int,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
