@@ -70,13 +70,13 @@ func (v *vertical) genscale(a *Asm, taps int) {
 	v.dp = a.Argument("dp")
 	v.sp = a.Argument("sp")
 	// stack
-	v.srcref = a.PushStack("srcref")
-	v.offref = a.PushStack("offref")
-	v.dstoff = a.PushStack("dstoff")
-	v.maxroll = a.PushStack("maxroll")
-	v.backroll = a.PushStack("backroll")
+	v.srcref = R9
+	v.offref = R10
+	v.dstoff = R11
+	v.maxroll = R12
+	v.backroll = R13
 	if v.xtaps == 0 {
-		v.inner = a.PushStack("inner")
+		v.inner = R14
 	}
 	a.Start()
 	v.frame(a)

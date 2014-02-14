@@ -5,39 +5,39 @@ DATA	hbits_1<>+0x00(SB)/8, $0x0000200000002000
 DATA	hbits_1<>+0x08(SB)/8, $0x0000200000002000
 GLOBL	hbits_1<>(SB), $16
 
-TEXT ·v8scale2(SB),4,$40-136
+TEXT ·v8scale2(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
 		SUBQ	CX, BX
 		ANDQ	$31, DX
 		SHRQ	$5, CX
-		MOVQ	BX, dstoff+-24(SP)
-		MOVQ	CX, maxroll+-32(SP)
+		MOVQ	BX, R11
+		MOVQ	CX, R12
 		MOVQ	DX, AX
 		ANDQ	$15, AX
 		JE	norollback_0
 		SUBQ	$32, AX
 		NEGQ	AX
 norollback_0:
-		MOVQ	AX, backroll+-40(SP)
+		MOVQ	AX, R13
 		MOVQ	off+72(FP), CX
-		MOVQ	CX, offref+-16(SP)
+		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
 		MOVO	hbits_1<>(SB), X13
 		MOVQ	src+24(FP), SI
-		MOVQ	SI, srcref+-8(SP)
+		MOVQ	SI, R9
 		MOVQ	dst+0(FP), DI
 		MOVQ	cof+48(FP), BP
 		MOVQ	sp+128(FP), BX
 yloop_1:
-		MOVQ	srcref+-8(SP), SI
-		MOVQ	offref+-16(SP), DX
+		MOVQ	R9, SI
+		MOVQ	R10, DX
 		MOVQ	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
-		MOVQ	SI, srcref+-8(SP)
-		MOVQ	maxroll+-32(SP), CX
+		MOVQ	SI, R9
+		MOVQ	R12, CX
 		ORQ	CX, CX
 		JE	nomaxloop_2
 maxloop_3:
@@ -101,9 +101,9 @@ maxloop_3:
 		SUBQ	$1, CX
 		JNE	maxloop_3
 nomaxloop_2:
-		MOVQ	backroll+-40(SP), CX
-		SUBQ	backroll+-40(SP), SI
-		SUBQ	backroll+-40(SP), DI
+		MOVQ	R13, CX
+		SUBQ	R13, SI
+		SUBQ	R13, DI
 		ORQ	CX, CX
 		JE	nobackroll_4
 		MOVOU	(BP), X12
@@ -165,46 +165,46 @@ nomaxloop_2:
 		ADDQ	$32, DI
 		SUBQ	$1, CX
 nobackroll_4:
-		ADDQ	dstoff+-24(SP), DI
+		ADDQ	R11, DI
 		ADDQ	$32, BP
-		ADDQ	$8, offref+-16(SP)
+		ADDQ	$8, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_1
 		RET
 
-TEXT ·v8scale4(SB),4,$40-136
+TEXT ·v8scale4(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
 		SUBQ	CX, BX
 		ANDQ	$15, DX
 		SHRQ	$4, CX
-		MOVQ	BX, dstoff+-24(SP)
-		MOVQ	CX, maxroll+-32(SP)
+		MOVQ	BX, R11
+		MOVQ	CX, R12
 		MOVQ	DX, AX
 		ANDQ	$7, AX
 		JE	norollback_5
 		SUBQ	$16, AX
 		NEGQ	AX
 norollback_5:
-		MOVQ	AX, backroll+-40(SP)
+		MOVQ	AX, R13
 		MOVQ	off+72(FP), CX
-		MOVQ	CX, offref+-16(SP)
+		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
 		MOVO	hbits_1<>(SB), X13
 		MOVQ	src+24(FP), SI
-		MOVQ	SI, srcref+-8(SP)
+		MOVQ	SI, R9
 		MOVQ	dst+0(FP), DI
 		MOVQ	cof+48(FP), BP
 		MOVQ	sp+128(FP), BX
 yloop_6:
-		MOVQ	srcref+-8(SP), SI
-		MOVQ	offref+-16(SP), DX
+		MOVQ	R9, SI
+		MOVQ	R10, DX
 		MOVQ	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
-		MOVQ	SI, srcref+-8(SP)
-		MOVQ	maxroll+-32(SP), CX
+		MOVQ	SI, R9
+		MOVQ	R12, CX
 		ORQ	CX, CX
 		JE	nomaxloop_7
 maxloop_8:
@@ -263,9 +263,9 @@ maxloop_8:
 		SUBQ	$1, CX
 		JNE	maxloop_8
 nomaxloop_7:
-		MOVQ	backroll+-40(SP), CX
-		SUBQ	backroll+-40(SP), SI
-		SUBQ	backroll+-40(SP), DI
+		MOVQ	R13, CX
+		SUBQ	R13, SI
+		SUBQ	R13, DI
 		ORQ	CX, CX
 		JE	nobackroll_9
 		MOVOU	(BP), X10
@@ -322,46 +322,46 @@ nomaxloop_7:
 		ADDQ	$16, DI
 		SUBQ	$1, CX
 nobackroll_9:
-		ADDQ	dstoff+-24(SP), DI
+		ADDQ	R11, DI
 		ADDQ	$64, BP
-		ADDQ	$8, offref+-16(SP)
+		ADDQ	$8, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_6
 		RET
 
-TEXT ·v8scale6(SB),4,$40-136
+TEXT ·v8scale6(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
 		SUBQ	CX, BX
 		ANDQ	$15, DX
 		SHRQ	$4, CX
-		MOVQ	BX, dstoff+-24(SP)
-		MOVQ	CX, maxroll+-32(SP)
+		MOVQ	BX, R11
+		MOVQ	CX, R12
 		MOVQ	DX, AX
 		ANDQ	$7, AX
 		JE	norollback_10
 		SUBQ	$16, AX
 		NEGQ	AX
 norollback_10:
-		MOVQ	AX, backroll+-40(SP)
+		MOVQ	AX, R13
 		MOVQ	off+72(FP), CX
-		MOVQ	CX, offref+-16(SP)
+		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
 		MOVO	hbits_1<>(SB), X13
 		MOVQ	src+24(FP), SI
-		MOVQ	SI, srcref+-8(SP)
+		MOVQ	SI, R9
 		MOVQ	dst+0(FP), DI
 		MOVQ	cof+48(FP), BP
 		MOVQ	sp+128(FP), BX
 yloop_11:
-		MOVQ	srcref+-8(SP), SI
-		MOVQ	offref+-16(SP), DX
+		MOVQ	R9, SI
+		MOVQ	R10, DX
 		MOVQ	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
-		MOVQ	SI, srcref+-8(SP)
-		MOVQ	maxroll+-32(SP), CX
+		MOVQ	SI, R9
+		MOVQ	R12, CX
 		ORQ	CX, CX
 		JE	nomaxloop_12
 maxloop_13:
@@ -441,9 +441,9 @@ maxloop_13:
 		SUBQ	$1, CX
 		JNE	maxloop_13
 nomaxloop_12:
-		MOVQ	backroll+-40(SP), CX
-		SUBQ	backroll+-40(SP), SI
-		SUBQ	backroll+-40(SP), DI
+		MOVQ	R13, CX
+		SUBQ	R13, SI
+		SUBQ	R13, DI
 		ORQ	CX, CX
 		JE	nobackroll_14
 		LEAQ	(SI)(BX*4), AX
@@ -521,46 +521,46 @@ nomaxloop_12:
 		ADDQ	$16, DI
 		SUBQ	$1, CX
 nobackroll_14:
-		ADDQ	dstoff+-24(SP), DI
+		ADDQ	R11, DI
 		ADDQ	$96, BP
-		ADDQ	$8, offref+-16(SP)
+		ADDQ	$8, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_11
 		RET
 
-TEXT ·v8scale8(SB),4,$40-136
+TEXT ·v8scale8(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
 		SUBQ	CX, BX
 		ANDQ	$15, DX
 		SHRQ	$4, CX
-		MOVQ	BX, dstoff+-24(SP)
-		MOVQ	CX, maxroll+-32(SP)
+		MOVQ	BX, R11
+		MOVQ	CX, R12
 		MOVQ	DX, AX
 		ANDQ	$7, AX
 		JE	norollback_15
 		SUBQ	$16, AX
 		NEGQ	AX
 norollback_15:
-		MOVQ	AX, backroll+-40(SP)
+		MOVQ	AX, R13
 		MOVQ	off+72(FP), CX
-		MOVQ	CX, offref+-16(SP)
+		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
 		MOVO	hbits_1<>(SB), X13
 		MOVQ	src+24(FP), SI
-		MOVQ	SI, srcref+-8(SP)
+		MOVQ	SI, R9
 		MOVQ	dst+0(FP), DI
 		MOVQ	cof+48(FP), BP
 		MOVQ	sp+128(FP), BX
 yloop_16:
-		MOVQ	srcref+-8(SP), SI
-		MOVQ	offref+-16(SP), DX
+		MOVQ	R9, SI
+		MOVQ	R10, DX
 		MOVQ	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
-		MOVQ	SI, srcref+-8(SP)
-		MOVQ	maxroll+-32(SP), CX
+		MOVQ	SI, R9
+		MOVQ	R12, CX
 		ORQ	CX, CX
 		JE	nomaxloop_17
 maxloop_18:
@@ -660,9 +660,9 @@ maxloop_18:
 		SUBQ	$1, CX
 		JNE	maxloop_18
 nomaxloop_17:
-		MOVQ	backroll+-40(SP), CX
-		SUBQ	backroll+-40(SP), SI
-		SUBQ	backroll+-40(SP), DI
+		MOVQ	R13, CX
+		SUBQ	R13, SI
+		SUBQ	R13, DI
 		ORQ	CX, CX
 		JE	nobackroll_19
 		LEAQ	(SI)(BX*4), AX
@@ -760,46 +760,46 @@ nomaxloop_17:
 		ADDQ	$16, DI
 		SUBQ	$1, CX
 nobackroll_19:
-		ADDQ	dstoff+-24(SP), DI
+		ADDQ	R11, DI
 		ADDQ	$128, BP
-		ADDQ	$8, offref+-16(SP)
+		ADDQ	$8, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_16
 		RET
 
-TEXT ·v8scale10(SB),4,$40-136
+TEXT ·v8scale10(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
 		SUBQ	CX, BX
 		ANDQ	$15, DX
 		SHRQ	$4, CX
-		MOVQ	BX, dstoff+-24(SP)
-		MOVQ	CX, maxroll+-32(SP)
+		MOVQ	BX, R11
+		MOVQ	CX, R12
 		MOVQ	DX, AX
 		ANDQ	$7, AX
 		JE	norollback_20
 		SUBQ	$16, AX
 		NEGQ	AX
 norollback_20:
-		MOVQ	AX, backroll+-40(SP)
+		MOVQ	AX, R13
 		MOVQ	off+72(FP), CX
-		MOVQ	CX, offref+-16(SP)
+		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
 		MOVO	hbits_1<>(SB), X13
 		MOVQ	src+24(FP), SI
-		MOVQ	SI, srcref+-8(SP)
+		MOVQ	SI, R9
 		MOVQ	dst+0(FP), DI
 		MOVQ	cof+48(FP), BP
 		MOVQ	sp+128(FP), BX
 yloop_21:
-		MOVQ	srcref+-8(SP), SI
-		MOVQ	offref+-16(SP), DX
+		MOVQ	R9, SI
+		MOVQ	R10, DX
 		MOVQ	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
-		MOVQ	SI, srcref+-8(SP)
-		MOVQ	maxroll+-32(SP), CX
+		MOVQ	SI, R9
+		MOVQ	R12, CX
 		ORQ	CX, CX
 		JE	nomaxloop_22
 maxloop_23:
@@ -919,9 +919,9 @@ maxloop_23:
 		SUBQ	$1, CX
 		JNE	maxloop_23
 nomaxloop_22:
-		MOVQ	backroll+-40(SP), CX
-		SUBQ	backroll+-40(SP), SI
-		SUBQ	backroll+-40(SP), DI
+		MOVQ	R13, CX
+		SUBQ	R13, SI
+		SUBQ	R13, DI
 		ORQ	CX, CX
 		JE	nobackroll_24
 		LEAQ	(SI)(BX*4), AX
@@ -1039,46 +1039,46 @@ nomaxloop_22:
 		ADDQ	$16, DI
 		SUBQ	$1, CX
 nobackroll_24:
-		ADDQ	dstoff+-24(SP), DI
+		ADDQ	R11, DI
 		ADDQ	$160, BP
-		ADDQ	$8, offref+-16(SP)
+		ADDQ	$8, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_21
 		RET
 
-TEXT ·v8scale12(SB),4,$40-136
+TEXT ·v8scale12(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
 		SUBQ	CX, BX
 		ANDQ	$15, DX
 		SHRQ	$4, CX
-		MOVQ	BX, dstoff+-24(SP)
-		MOVQ	CX, maxroll+-32(SP)
+		MOVQ	BX, R11
+		MOVQ	CX, R12
 		MOVQ	DX, AX
 		ANDQ	$7, AX
 		JE	norollback_25
 		SUBQ	$16, AX
 		NEGQ	AX
 norollback_25:
-		MOVQ	AX, backroll+-40(SP)
+		MOVQ	AX, R13
 		MOVQ	off+72(FP), CX
-		MOVQ	CX, offref+-16(SP)
+		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
 		MOVO	hbits_1<>(SB), X13
 		MOVQ	src+24(FP), SI
-		MOVQ	SI, srcref+-8(SP)
+		MOVQ	SI, R9
 		MOVQ	dst+0(FP), DI
 		MOVQ	cof+48(FP), BP
 		MOVQ	sp+128(FP), BX
 yloop_26:
-		MOVQ	srcref+-8(SP), SI
-		MOVQ	offref+-16(SP), DX
+		MOVQ	R9, SI
+		MOVQ	R10, DX
 		MOVQ	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
-		MOVQ	SI, srcref+-8(SP)
-		MOVQ	maxroll+-32(SP), CX
+		MOVQ	SI, R9
+		MOVQ	R12, CX
 		ORQ	CX, CX
 		JE	nomaxloop_27
 maxloop_28:
@@ -1218,9 +1218,9 @@ maxloop_28:
 		SUBQ	$1, CX
 		JNE	maxloop_28
 nomaxloop_27:
-		MOVQ	backroll+-40(SP), CX
-		SUBQ	backroll+-40(SP), SI
-		SUBQ	backroll+-40(SP), DI
+		MOVQ	R13, CX
+		SUBQ	R13, SI
+		SUBQ	R13, DI
 		ORQ	CX, CX
 		JE	nobackroll_29
 		LEAQ	(SI)(BX*4), AX
@@ -1358,50 +1358,50 @@ nomaxloop_27:
 		ADDQ	$16, DI
 		SUBQ	$1, CX
 nobackroll_29:
-		ADDQ	dstoff+-24(SP), DI
+		ADDQ	R11, DI
 		ADDQ	$192, BP
-		ADDQ	$8, offref+-16(SP)
+		ADDQ	$8, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_26
 		RET
 
-TEXT ·v8scaleN(SB),4,$48-136
+TEXT ·v8scaleN(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
 		SUBQ	CX, BX
 		ANDQ	$15, DX
 		SHRQ	$4, CX
-		MOVQ	BX, dstoff+-24(SP)
-		MOVQ	CX, maxroll+-32(SP)
+		MOVQ	BX, R11
+		MOVQ	CX, R12
 		MOVQ	DX, AX
 		ANDQ	$7, AX
 		JE	norollback_30
 		SUBQ	$16, AX
 		NEGQ	AX
 norollback_30:
-		MOVQ	AX, backroll+-40(SP)
+		MOVQ	AX, R13
 		MOVQ	off+72(FP), CX
-		MOVQ	CX, offref+-16(SP)
+		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
 		MOVO	hbits_1<>(SB), X13
 		MOVQ	taps+96(FP), DX
 		SUBQ	$4, DX
 		SHRQ	$1, DX
-		MOVQ	DX, inner+-48(SP)
+		MOVQ	DX, R14
 		MOVQ	src+24(FP), SI
-		MOVQ	SI, srcref+-8(SP)
+		MOVQ	SI, R9
 		MOVQ	dst+0(FP), DI
 		MOVQ	cof+48(FP), BP
 		MOVQ	sp+128(FP), BX
 yloop_31:
-		MOVQ	srcref+-8(SP), SI
-		MOVQ	offref+-16(SP), DX
+		MOVQ	R9, SI
+		MOVQ	R10, DX
 		MOVQ	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
-		MOVQ	SI, srcref+-8(SP)
-		MOVQ	maxroll+-32(SP), CX
+		MOVQ	SI, R9
+		MOVQ	R12, CX
 		ORQ	CX, CX
 		JE	nomaxloop_32
 maxloop_33:
@@ -1444,7 +1444,7 @@ maxloop_33:
 		PADDL	X5, X1
 		PADDL	X6, X2
 		PADDL	X7, X3
-		MOVQ	inner+-48(SP), R15
+		MOVQ	R14, R15
 		MOVQ	BP, DX
 		ADDQ	$32, DX
 innerloop_34:
@@ -1488,9 +1488,9 @@ innerloop_34:
 		SUBQ	$1, CX
 		JNE	maxloop_33
 nomaxloop_32:
-		MOVQ	backroll+-40(SP), CX
-		SUBQ	backroll+-40(SP), SI
-		SUBQ	backroll+-40(SP), DI
+		MOVQ	R13, CX
+		SUBQ	R13, SI
+		SUBQ	R13, DI
 		ORQ	CX, CX
 		JE	nobackroll_35
 		LEAQ	(SI)(BX*4), AX
@@ -1532,7 +1532,7 @@ nomaxloop_32:
 		PADDL	X5, X1
 		PADDL	X6, X2
 		PADDL	X7, X3
-		MOVQ	inner+-48(SP), R15
+		MOVQ	R14, R15
 		MOVQ	BP, DX
 		ADDQ	$32, DX
 innerloop_36:
@@ -1575,11 +1575,11 @@ innerloop_36:
 		ADDQ	$16, DI
 		SUBQ	$1, CX
 nobackroll_35:
-		ADDQ	dstoff+-24(SP), DI
+		ADDQ	R11, DI
 		MOVQ	taps+96(FP), DX
 		SHLQ	$4, DX
 		ADDQ	DX, BP
-		ADDQ	$8, offref+-16(SP)
+		ADDQ	$8, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_31
 		RET
