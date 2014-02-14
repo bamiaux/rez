@@ -271,15 +271,15 @@ func (v *vertical) tapsn(a *Asm) {
 }
 
 func (v *vertical) tapsn4(a *Asm) {
+	a.Movou(X0, Address(SI, BX, SX0))
+	a.Movou(X3, Address(SI, BX, SX1))
+	a.Movou(X4, Address(SI, BX, SX2))
 	a.Movou(X10, Address(BP))
 	a.Movou(X11, Address(BP, v.xwidth*2))
-	a.Movou(X0, Address(SI, BX, SX0))
-	a.Movou(X4, Address(SI, BX, SX2))
 	a.Addq(SI, BX)
+	a.Movou(X7, Address(SI, BX, SX2))
 	a.Movo(X2, X0)
 	a.Movo(X6, X4)
-	a.Movou(X3, Address(SI, BX, SX0))
-	a.Movou(X7, Address(SI, BX, SX2))
 	a.Punpcklbw(X0, X3)
 	a.Punpcklbw(X4, X7)
 	a.Punpckhbw(X2, X3)
@@ -343,8 +343,8 @@ func (v *vertical) leftntaps(a *Asm) {
 
 func (v *vertical) tapsn2(a *Asm, xa, xb, xc, xd SimdRegister, src Register, cof Operand) {
 	a.Movou(xa, Address(src, BX, SX0))
-	a.Movo(xc, xa)
 	a.Movou(xd, Address(src, BX, SX1))
+	a.Movo(xc, xa)
 	a.Punpcklbw(xa, xd)
 	a.Punpckhbw(xc, xd)
 	a.Movo(xb, xa)
