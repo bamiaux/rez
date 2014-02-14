@@ -44,6 +44,10 @@ func vgen(a *Asm) {
 	v.hbits = a.Data("hbits", bytes.Repeat([]byte{0x00, 0x00, 0x20, 0x00}, 4))
 	v.genscale(a, 2)
 	v.genscale(a, 4)
+	v.genscale(a, 6)
+	v.genscale(a, 8)
+	v.genscale(a, 10)
+	v.genscale(a, 12)
 }
 
 func (v *vertical) genscale(a *Asm, taps int) {
@@ -224,7 +228,13 @@ func (v *vertical) taps2(a *Asm) {
 }
 
 func (v *vertical) tapsn(a *Asm) {
+	if v.xtaps != 4 {
+		a.Leaq(AX, Address(SI, BX, SX4))
+	}
 	v.tapsn4(a)
+	if v.xtaps != 4 {
+		v.nexttaps(a)
+	}
 	a.Paddd(X0, X13)
 	a.Paddd(X1, X13)
 	a.Paddd(X2, X13)
@@ -280,4 +290,35 @@ func (v *vertical) tapsn4(a *Asm) {
 	a.Paddd(X1, X5)
 	a.Paddd(X2, X6)
 	a.Paddd(X3, X7)
+}
+
+func (v *vertical) nexttaps(a *Asm) {
+	for i := 2; i*2 < v.xtaps; i++ {
+		v.tapsn2(a, X4, X5, X6, X7, AX, Address(BP, i*v.xwidth*2))
+		if i*2+1 < v.xtaps {
+			a.Leaq(AX, Address(AX, BX, SX2))
+		}
+		a.Paddd(X0, X4)
+		a.Paddd(X1, X5)
+		a.Paddd(X2, X6)
+		a.Paddd(X3, X7)
+	}
+}
+
+func (v *vertical) tapsn2(a *Asm, xa, xb, xc, xd SimdRegister, src Register, cof Operand) {
+	a.Movou(xa, Address(src, BX, SX0))
+	a.Movo(xc, xa)
+	a.Movou(xd, Address(src, BX, SX1))
+	a.Punpcklbw(xa, xd)
+	a.Punpckhbw(xc, xd)
+	a.Movo(xb, xa)
+	a.Movo(xd, xc)
+	a.Punpcklbw(xa, X14)
+	a.Punpckhbw(xb, X14)
+	a.Punpcklbw(xc, X14)
+	a.Punpckhbw(xd, X14)
+	a.Pmaddwd(xa, cof)
+	a.Pmaddwd(xb, cof)
+	a.Pmaddwd(xc, cof)
+	a.Pmaddwd(xd, cof)
 }
