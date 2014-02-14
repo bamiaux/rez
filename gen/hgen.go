@@ -259,7 +259,7 @@ func htaps2(a *Asm, c *context) {
 	a.Packssdw(X0, X1)
 	a.Packssdw(X2, X3)
 	a.Packuswb(X0, X2)
-	a.Store(Address(DI), X0)
+	a.Movou(Address(DI), X0)
 	a.Addq(DI, Constant(xwidth))
 }
 
@@ -314,19 +314,19 @@ func htaps4(a *Asm, c *context) {
 	a.Psrad(X5, Constant(14))
 	a.Packssdw(X1, X5)
 	a.Packuswb(X0, X1)
-	a.Store(Address(DI), X0)
+	a.Movou(Address(DI), X0)
 	a.Addq(DI, Constant(xwidth))
 }
 
 func hload8(a *Asm, xa, xb SimdRegister, idx uint, xc, xd SimdRegister) {
 	a.Movq(AX, Address(BX, (idx*4+0)*8))
-	a.Hstore(xa, Address(SI, AX))
+	a.Movq(xa, Address(SI, AX))
 	a.Movq(DX, Address(BX, (idx*4+1)*8))
-	a.Hstore(xb, Address(SI, DX))
+	a.Movq(xb, Address(SI, DX))
 	a.Movq(AX, Address(BX, (idx*4+2)*8))
-	a.Hstore(xc, Address(SI, AX))
+	a.Movq(xc, Address(SI, AX))
 	a.Movq(DX, Address(BX, (idx*4+3)*8))
-	a.Hstore(xd, Address(SI, DX))
+	a.Movq(xd, Address(SI, DX))
 }
 
 func hpadd8(a *Asm, xa, xb, xc, xd, tmpa, tmpb SimdRegister) {
@@ -373,7 +373,7 @@ func htaps8(a *Asm, c *context) {
 	a.Packssdw(X0, X4)
 	a.Packssdw(X1, X2)
 	a.Packuswb(X0, X1)
-	a.Store(Address(DI), X0)
+	a.Movou(Address(DI), X0)
 	a.Addq(DI, Constant(xwidth))
 }
 
@@ -439,6 +439,6 @@ func htapsn(a *Asm, c *context) {
 	a.Packssdw(X0, X1)
 	a.Packssdw(X2, X3)
 	a.Packuswb(X0, X2)
-	a.Store(Address(DI), X0)
+	a.Movou(Address(DI), X0)
 	a.Addq(DI, Constant(xwidth))
 }

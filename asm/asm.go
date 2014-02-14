@@ -133,12 +133,12 @@ func Constant(value interface{}) Operand {
 }
 
 type Register struct{ literal }
-type SimdRegister struct{ literal }
 
 type Scale uint
 
 const (
-	SX1 Scale = 1 << iota
+	SX0 Scale = 0
+	SX1 Scale = 1 << (iota - 1)
 	SX2
 	SX4
 	SX8
@@ -155,8 +155,15 @@ func displaceaddress(base Register, index int) Operand {
 	return literal(fmt.Sprintf("%v(%v)", index, base.String()))
 }
 
+func scaledindex(index Register, scale Scale) string {
+	if scale == SX0 {
+		return ""
+	}
+	return fmt.Sprintf("(%v*%v)", index.String(), scale)
+}
+
 func indexaddress(base Register, index Register, scale Scale) Operand {
-	return literal(fmt.Sprintf("(%v)(%v*%v)", base.String(), index.String(), scale))
+	return literal(fmt.Sprintf("(%v)%v", base.String(), scaledindex(index, scale)))
 }
 
 func fulladdress(base Register, index Register, scale Scale, displacement int) Operand {
@@ -164,7 +171,7 @@ func fulladdress(base Register, index Register, scale Scale, displacement int) O
 	if displacement != 0 {
 		d = fmt.Sprintf("%v", displacement)
 	}
-	return literal(fmt.Sprintf("%v(%v)(%v*%v)", d, base.String(), index.String(), scale))
+	return literal(fmt.Sprintf("%v(%v)%v", d, base.String(), scaledindex(index, scale)))
 }
 
 func Address(base Register, offsets ...interface{}) Operand {
@@ -212,6 +219,8 @@ func Address(base Register, offsets ...interface{}) Operand {
 	}
 	panic("unexpected input")
 }
+
+type SimdRegister struct{ literal }
 
 var (
 	SP  = Register{literal: "SP"}
@@ -290,11 +299,13 @@ func (a *Asm) Label(name label) {
 
 func (a *Asm) Ret() { a.op0("RET") }
 
+func (a *Asm) Imulq(op Operand) { a.op1("IMULQ", op) }
 func (a *Asm) Incq(op Operand)  { a.op1("INCQ", op) }
+func (a *Asm) Je(name label)    { a.op1("JE", name) }
 func (a *Asm) Jmp(name label)   { a.op1("JMP", name) }
 func (a *Asm) Jne(name label)   { a.op1("JNE", name) }
-func (a *Asm) Je(name label)    { a.op1("JE", name) }
-func (a *Asm) Imulq(op Operand) { a.op1("IMULQ", op) }
+func (a *Asm) Mulq(op Operand)  { a.op1("MULQ", op) }
+func (a *Asm) Neg(op Operand)   { a.op1("NEGQ", op) }
 
 func (a *Asm) Addq(opa, opb Operand)       { a.op2("ADDQ", opa, opb) }
 func (a *Asm) Andq(opa, opb Operand)       { a.op2("ANDQ", opa, opb) }
@@ -303,6 +314,7 @@ func (a *Asm) Movb(opa, opb Operand)       { a.op2("MOVB", opa, opb) }
 func (a *Asm) Movbqzx(opa, opb Operand)    { a.op2("MOVBQZX", opa, opb) }
 func (a *Asm) Movd(opa, opb Operand)       { a.op2("MOVL", opa, opb) }
 func (a *Asm) Movo(opa, opb Operand)       { a.op2("MOVO", opa, opb) }
+func (a *Asm) Movou(opa, opb Operand)      { a.op2("MOVOU", opa, opb) }
 func (a *Asm) Movq(opa, opb Operand)       { a.op2("MOVQ", opa, opb) }
 func (a *Asm) Movwqsx(opa, opb Operand)    { a.op2("MOVWQSX", opa, opb) }
 func (a *Asm) Orq(opa, opb Operand)        { a.op2("ORQ", opa, opb) }
@@ -311,14 +323,13 @@ func (a *Asm) Packuswb(opa, opb Operand)   { a.op2("PACKUSWB", opa, opb) }
 func (a *Asm) Paddd(opa, opb Operand)      { a.op2("PADDL", opa, opb) }
 func (a *Asm) Pmaddwd(opa, opb Operand)    { a.op2("PMADDWL", opa, opb) }
 func (a *Asm) Psrad(opa, opb Operand)      { a.op2("PSRAL", opa, opb) }
+func (a *Asm) Punpckhqdq(opa, opb Operand) { a.op2("PUNPCKHQDQ", opa, opb) }
 func (a *Asm) Punpcklbw(opa, opb Operand)  { a.op2("PUNPCKLBW", opa, opb) }
+func (a *Asm) Punpckhbw(opa, opb Operand)  { a.op2("PUNPCKHBW", opa, opb) }
 func (a *Asm) Punpckldq(opa, opb Operand)  { a.op2("PUNPCKLLQ", opa, opb) }
 func (a *Asm) Punpcklqdq(opa, opb Operand) { a.op2("PUNPCKLQDQ", opa, opb) }
-func (a *Asm) Punpckhqdq(opa, opb Operand) { a.op2("PUNPCKHQDQ", opa, opb) }
 func (a *Asm) Pxor(opa, opb Operand)       { a.op2("PXOR", opa, opb) }
 func (a *Asm) Shrq(opa, opb Operand)       { a.op2("SHRQ", opa, opb) }
-func (a *Asm) Store(opa, opb Operand)      { a.op2("MOVOU", opa, opb) }
-func (a *Asm) Hstore(opa, opb Operand)     { a.op2("MOVQ", opa, opb) }
 func (a *Asm) Subq(opa, opb Operand)       { a.op2("SUBQ", opa, opb) }
 
 func (a *Asm) Pinsrw(opa, opb, opc Operand) { a.op3("PINSRW", opa, opb, opc) }
