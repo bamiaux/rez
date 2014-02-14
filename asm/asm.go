@@ -187,6 +187,8 @@ func Address(base Register, offsets ...interface{}) Operand {
 			return displaceaddress(base, int(t))
 		case Register:
 			return indexaddress(base, t, SX1)
+		case Scale:
+			return literal(scaledindex(base, t))
 		}
 	case 2:
 		index, ok := offsets[0].(Register)
