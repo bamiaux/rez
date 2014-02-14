@@ -308,9 +308,9 @@ func (a *Asm) Mulq(op Operand)  { a.op1("MULQ", op) }
 func (a *Asm) Neg(op Operand)   { a.op1("NEGQ", op) }
 
 func (a *Asm) Addq(opa, opb Operand)       { a.op2("ADDQ", opa, opb) }
-func (a *Asm) Leaq(opa, opb Operand)       { a.op2("LEAQ", opa, opb) }
 func (a *Asm) Andq(opa, opb Operand)       { a.op2("ANDQ", opa, opb) }
 func (a *Asm) Cmovql(opa, opb Operand)     { a.op2("CMOVQLT", opa, opb) }
+func (a *Asm) Leaq(opa, opb Operand)       { a.op2("LEAQ", opa, opb) }
 func (a *Asm) Movb(opa, opb Operand)       { a.op2("MOVB", opa, opb) }
 func (a *Asm) Movbqzx(opa, opb Operand)    { a.op2("MOVBQZX", opa, opb) }
 func (a *Asm) Movd(opa, opb Operand)       { a.op2("MOVL", opa, opb) }
@@ -324,12 +324,13 @@ func (a *Asm) Packuswb(opa, opb Operand)   { a.op2("PACKUSWB", opa, opb) }
 func (a *Asm) Paddd(opa, opb Operand)      { a.op2("PADDL", opa, opb) }
 func (a *Asm) Pmaddwd(opa, opb Operand)    { a.op2("PMADDWL", opa, opb) }
 func (a *Asm) Psrad(opa, opb Operand)      { a.op2("PSRAL", opa, opb) }
+func (a *Asm) Punpckhbw(opa, opb Operand)  { a.op2("PUNPCKHBW", opa, opb) }
 func (a *Asm) Punpckhqdq(opa, opb Operand) { a.op2("PUNPCKHQDQ", opa, opb) }
 func (a *Asm) Punpcklbw(opa, opb Operand)  { a.op2("PUNPCKLBW", opa, opb) }
-func (a *Asm) Punpckhbw(opa, opb Operand)  { a.op2("PUNPCKHBW", opa, opb) }
 func (a *Asm) Punpckldq(opa, opb Operand)  { a.op2("PUNPCKLLQ", opa, opb) }
 func (a *Asm) Punpcklqdq(opa, opb Operand) { a.op2("PUNPCKLQDQ", opa, opb) }
 func (a *Asm) Pxor(opa, opb Operand)       { a.op2("PXOR", opa, opb) }
+func (a *Asm) Shlq(opa, opb Operand)       { a.op2("SHLQ", opa, opb) }
 func (a *Asm) Shrq(opa, opb Operand)       { a.op2("SHRQ", opa, opb) }
 func (a *Asm) Subq(opa, opb Operand)       { a.op2("SUBQ", opa, opb) }
 

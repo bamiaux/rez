@@ -34,6 +34,7 @@ type vertical struct {
 	dstoff   Operand
 	maxroll  Operand
 	backroll Operand
+	inner    Operand
 }
 
 func vgen(a *Asm) {
@@ -48,6 +49,7 @@ func vgen(a *Asm) {
 	v.genscale(a, 8)
 	v.genscale(a, 10)
 	v.genscale(a, 12)
+	v.genscale(a, 0)
 }
 
 func (v *vertical) genscale(a *Asm, taps int) {
@@ -73,6 +75,9 @@ func (v *vertical) genscale(a *Asm, taps int) {
 	v.dstoff = a.PushStack("dstoff")
 	v.maxroll = a.PushStack("maxroll")
 	v.backroll = a.PushStack("backroll")
+	if v.xtaps == 0 {
+		v.inner = a.PushStack("inner")
+	}
 	a.Start()
 	v.frame(a)
 	a.Ret()
@@ -133,11 +138,23 @@ func (v *vertical) setup(a *Asm) {
 	a.Movq(v.offref, CX)
 	a.Movo(X14, v.zero)
 	a.Movo(X13, v.hbits)
+	if v.xtaps == 0 {
+		a.Movq(DX, v.taps)
+		a.Subq(DX, Constant(4))
+		a.Shrq(DX, Constant(1))
+		a.Movq(v.inner, DX)
+	}
 }
 
 func (v *vertical) nextline(a *Asm) {
 	a.Addq(DI, v.dstoff)
-	a.Addq(BP, Constant(v.xwidth*v.xtaps))
+	if v.xtaps == 0 {
+		a.Movq(DX, v.taps)
+		a.Shlq(DX, Constant(v.xshift))
+		a.Addq(BP, DX)
+	} else {
+		a.Addq(BP, Constant(v.xwidth*v.xtaps))
+	}
 	a.Addq(v.offref, Constant(8))
 }
 
@@ -232,8 +249,10 @@ func (v *vertical) tapsn(a *Asm) {
 		a.Leaq(AX, Address(SI, BX, SX4))
 	}
 	v.tapsn4(a)
-	if v.xtaps != 4 {
-		v.nexttaps(a)
+	if v.xtaps == 0 {
+		v.leftntaps(a)
+	} else if v.xtaps != 4 {
+		v.left2taps(a)
 	}
 	a.Paddd(X0, X13)
 	a.Paddd(X1, X13)
@@ -292,7 +311,7 @@ func (v *vertical) tapsn4(a *Asm) {
 	a.Paddd(X3, X7)
 }
 
-func (v *vertical) nexttaps(a *Asm) {
+func (v *vertical) left2taps(a *Asm) {
 	for i := 2; i*2 < v.xtaps; i++ {
 		v.tapsn2(a, X4, X5, X6, X7, AX, Address(BP, i*v.xwidth*2))
 		if i*2+1 < v.xtaps {
@@ -303,6 +322,23 @@ func (v *vertical) nexttaps(a *Asm) {
 		a.Paddd(X2, X6)
 		a.Paddd(X3, X7)
 	}
+}
+
+func (v *vertical) leftntaps(a *Asm) {
+	a.Movq(R15, v.inner)
+	a.Movq(DX, BP)
+	a.Addq(DX, Constant(v.xwidth*2))
+	innerloop := a.NewLabel("innerloop")
+	a.Label(innerloop)
+	a.Addq(DX, Constant(v.xwidth*2))
+	v.tapsn2(a, X4, X5, X6, X7, AX, Address(DX))
+	a.Leaq(AX, Address(AX, BX, SX2))
+	a.Paddd(X0, X4)
+	a.Paddd(X1, X5)
+	a.Paddd(X2, X6)
+	a.Paddd(X3, X7)
+	a.Subq(R15, Constant(1))
+	a.Jne(innerloop)
 }
 
 func (v *vertical) tapsn2(a *Asm, xa, xb, xc, xd SimdRegister, src Register, cof Operand) {

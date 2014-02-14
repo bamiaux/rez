@@ -18,8 +18,8 @@ func v8scale6(dst, src []byte, cof []int16, off []int, taps, width, height, dp, 
 func v8scale8(dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int)
 func v8scale10(dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int)
 func v8scale12(dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int)
+func v8scaleN(dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int)
 
 var (
-	h8scale6  = h8scaleN
-	v8scaleN  = v8scaleNGo
+	h8scale6 = h8scaleN
 )

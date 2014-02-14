@@ -150,9 +150,6 @@ func prepareCoeffs(cfg *ResizerConfig, cof []int16, size, taps int) ([]int16, in
 }
 
 func prepareVerticalCoeffs(cof []int16, size, taps int) ([]int16, int) {
-	if taps > 12 {
-		return cof, 1
-	}
 	xwidth := 16
 	dst := make([]int16, size*taps*xwidth>>1)
 	si := 0
