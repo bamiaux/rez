@@ -43,6 +43,7 @@ func vgen(a *Asm) {
 	v.zero = a.Data("zero", bytes.Repeat([]byte{0x00}, 16))
 	v.hbits = a.Data("hbits", bytes.Repeat([]byte{0x00, 0x00, 0x20, 0x00}, 4))
 	v.genscale(a, 2)
+	v.genscale(a, 4)
 }
 
 func (v *vertical) genscale(a *Asm, taps int) {
@@ -99,15 +100,28 @@ func (v *vertical) setup(a *Asm) {
 	a.Movq(CX, v.width)
 	a.Movq(DX, CX)
 	a.Subq(BX, CX)
-	a.Andq(DX, Constant(v.xwidth*2-1))
-	a.Shrq(CX, Constant(v.xshift+1))
+	if v.xtaps == 2 {
+		a.Andq(DX, Constant(v.xwidth*2-1))
+		a.Shrq(CX, Constant(v.xshift+1))
+	} else {
+		a.Andq(DX, Constant(v.xwidth-1))
+		a.Shrq(CX, Constant(v.xshift))
+	}
 	a.Movq(v.dstoff, BX)
 	a.Movq(v.maxroll, CX)
 	a.Movq(AX, DX)
-	a.Andq(AX, Constant(15))
+	if v.xtaps == 2 {
+		a.Andq(AX, Constant(v.xwidth-1))
+	} else {
+		a.Andq(AX, Constant(v.xwidth>>1-1))
+	}
 	norollback := a.NewLabel("norollback")
 	a.Je(norollback)
-	a.Subq(AX, Constant(v.xwidth*2))
+	if v.xtaps == 2 {
+		a.Subq(AX, Constant(v.xwidth*2))
+	} else {
+		a.Subq(AX, Constant(v.xwidth))
+	}
 	a.Neg(AX)
 	a.Label(norollback)
 	a.Movq(v.backroll, AX)
@@ -124,13 +138,17 @@ func (v *vertical) nextline(a *Asm) {
 }
 
 func (v *vertical) line(a *Asm) {
+	taps := v.tapsn
+	if v.xtaps == 2 {
+		taps = v.taps2
+	}
 	a.Movq(CX, v.maxroll)
 	a.Orq(CX, CX)
 	nomaxloop := a.NewLabel("nomaxloop")
 	a.Je(nomaxloop)
 	maxloop := a.NewLabel("maxloop")
 	a.Label(maxloop)
-	v.taps2(a)
+	taps(a)
 	a.Subq(CX, Constant(1))
 	a.Jne(maxloop)
 	a.Label(nomaxloop)
@@ -140,7 +158,7 @@ func (v *vertical) line(a *Asm) {
 	a.Orq(CX, CX)
 	nobackroll := a.NewLabel("nobackroll")
 	a.Je(nobackroll)
-	v.taps2(a)
+	taps(a)
 	a.Subq(CX, Constant(1))
 	a.Label(nobackroll)
 }
@@ -203,4 +221,63 @@ func (v *vertical) taps2(a *Asm) {
 	a.Movou(Address(DI, v.xwidth*1), X4)
 	a.Addq(SI, Constant(v.xwidth*2))
 	a.Addq(DI, Constant(v.xwidth*2))
+}
+
+func (v *vertical) tapsn(a *Asm) {
+	v.tapsn4(a)
+	a.Paddd(X0, X13)
+	a.Paddd(X1, X13)
+	a.Paddd(X2, X13)
+	a.Paddd(X3, X13)
+	a.Psrad(X0, Constant(14))
+	a.Psrad(X1, Constant(14))
+	a.Psrad(X2, Constant(14))
+	a.Psrad(X3, Constant(14))
+	a.Packssdw(X0, X1)
+	a.Packssdw(X2, X3)
+	a.Packuswb(X0, X2)
+	a.Movou(Address(DI), X0)
+	a.Addq(SI, Constant(v.xwidth))
+	a.Addq(DI, Constant(v.xwidth))
+}
+
+func (v *vertical) tapsn4(a *Asm) {
+	a.Movou(X10, Address(BP))
+	a.Movou(X11, Address(BP, v.xwidth*2))
+	a.Movou(X0, Address(SI, BX, SX0))
+	a.Movou(X4, Address(SI, BX, SX2))
+	a.Addq(SI, BX)
+	a.Movo(X2, X0)
+	a.Movo(X6, X4)
+	a.Movou(X3, Address(SI, BX, SX0))
+	a.Movou(X7, Address(SI, BX, SX2))
+	a.Punpcklbw(X0, X3)
+	a.Punpcklbw(X4, X7)
+	a.Punpckhbw(X2, X3)
+	a.Punpckhbw(X6, X7)
+	a.Movo(X1, X0)
+	a.Movo(X5, X4)
+	a.Movo(X3, X2)
+	a.Movo(X7, X6)
+	a.Subq(SI, BX)
+	a.Punpcklbw(X0, X14)
+	a.Punpckhbw(X1, X14)
+	a.Punpcklbw(X4, X14)
+	a.Punpckhbw(X5, X14)
+	a.Punpcklbw(X2, X14)
+	a.Punpckhbw(X3, X14)
+	a.Punpcklbw(X6, X14)
+	a.Punpckhbw(X7, X14)
+	a.Pmaddwd(X0, X10)
+	a.Pmaddwd(X1, X10)
+	a.Pmaddwd(X4, X11)
+	a.Pmaddwd(X5, X11)
+	a.Pmaddwd(X2, X10)
+	a.Pmaddwd(X3, X10)
+	a.Pmaddwd(X6, X11)
+	a.Pmaddwd(X7, X11)
+	a.Paddd(X0, X4)
+	a.Paddd(X1, X5)
+	a.Paddd(X2, X6)
+	a.Paddd(X3, X7)
 }
