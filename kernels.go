@@ -10,9 +10,10 @@ import (
 )
 
 type kernel struct {
-	coeffs  []int16
-	offsets []int
-	size    int
+	coeffs   []int16
+	offsets  []int
+	size     int
+	cofscale int // how many more coeffs do we have
 }
 
 func bin(v bool) uint {
@@ -134,17 +135,42 @@ func makeKernel(cfg *ResizerConfig, filter Filter, idx uint) kernel {
 	} else if cfg.Pack > 1 {
 		coeffs, offsets, taps = unpack(coeffs, offsets, taps, cfg.Pack)
 	}
-	coeffs = prepareCoeffs(cfg, coeffs, size*cfg.Pack, taps)
-	return kernel{coeffs, offsets, taps}
+	coeffs, cofscale := prepareCoeffs(cfg, coeffs, size, taps)
+	return kernel{coeffs, offsets, taps, cofscale}
 }
 
-func prepareCoeffs(cfg *ResizerConfig, cof []int16, size, taps int) []int16 {
+func prepareCoeffs(cfg *ResizerConfig, cof []int16, size, taps int) ([]int16, int) {
 	if !hasAsm() {
-		return cof
+		return cof, 1
 	}
 	if cfg.Vertical {
-		return cof
+		return prepareVerticalCoeffs(cof, size, taps)
 	}
+	return prepareHorizontalCoeffs(cof, size*cfg.Pack, taps), 1
+}
+
+func prepareVerticalCoeffs(cof []int16, size, taps int) ([]int16, int) {
+	if taps != 2 {
+		return cof, 1
+	}
+	xwidth := 16
+	dst := make([]int16, size*taps*xwidth>>1)
+	si := 0
+	di := 0
+	for i := 0; i < size; i++ {
+		for j := 0; j < taps; j += 2 {
+			for k := 0; k < xwidth; k += 2 {
+				dst[di+k+0] = cof[si+0]
+				dst[di+k+1] = cof[si+1]
+			}
+			si += 2
+			di += xwidth
+		}
+	}
+	return dst, xwidth >> 1
+}
+
+func prepareHorizontalCoeffs(cof []int16, size, taps int) []int16 {
 	if taps == 2 || taps == 4 || taps == 8 {
 		return cof
 	}

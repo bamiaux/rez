@@ -103,7 +103,7 @@ func scaleSlice(group *sync.WaitGroup, scaler scaler,
 
 func scaleSlices(group *sync.WaitGroup, scaler scaler,
 	vertical bool, threads, taps, width, height, dp, sp int,
-	dst, src []byte, cof []int16, off []int) {
+	dst, src []byte, cof []int16, cofscale int, off []int) {
 	defer group.Done()
 	nh := height / threads
 	if nh < 1 {
@@ -130,7 +130,7 @@ func scaleSlices(group *sync.WaitGroup, scaler scaler,
 		go scaleSlice(group, scaler,
 			dst[di:di+dp*(ih-1)+width],
 			src[si:],
-			cof[ci:ci+next*taps],
+			cof[ci:ci+next*taps*cofscale],
 			off[oi:oi+next],
 			taps, width, ih, dp, sp)
 		if last {
@@ -138,7 +138,7 @@ func scaleSlices(group *sync.WaitGroup, scaler scaler,
 		}
 		di += ih * dp
 		if vertical {
-			ci += ih * taps
+			ci += ih * taps * cofscale
 			for j := 0; j < ih; j++ {
 				si += sp * off[oi+j]
 			}
@@ -163,7 +163,7 @@ func (c *context) Resize(dst, src []byte, width, height, dp, sp int) {
 		group.Add(1)
 		go scaleSlices(&group, c.scaler, c.cfg.Vertical, c.cfg.Threads,
 			k.size, dwidth*pk, dheight, dp<<field, sp<<field,
-			dst[dp*i:], src[sp*i:], k.coeffs, k.offsets)
+			dst[dp*i:], src[sp*i:], k.coeffs, k.cofscale, k.offsets)
 	}
 	group.Wait()
 }

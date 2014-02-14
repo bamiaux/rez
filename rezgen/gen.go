@@ -18,6 +18,8 @@ func main() {
 	switch *mode {
 	case "horizontal":
 		hgen(a)
+	case "vertical":
+		vgen(a)
 	}
 	err := a.Flush()
 	if err != nil {
