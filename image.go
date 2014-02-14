@@ -11,6 +11,7 @@ Featuring:
  - RGB resizes
  - Optional interlaced-aware resizes
  - Parallel resizes
+ - SSE2 optimisations on AMD64
 
 The easiest way to use it is:
 
