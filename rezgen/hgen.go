@@ -240,12 +240,12 @@ func (h *horizontal) taps2(a *Asm) {
 	a.Pmaddwd(X1, Address(BP, xwidth*1))
 	a.Pmaddwd(X2, Address(BP, xwidth*2))
 	a.Pmaddwd(X3, Address(BP, xwidth*3))
-	h.flush(a, X0, X1, X2, X3, 4)
+	h.flush(a, X0, X1, X2, X3, BP, 4)
 }
 
-func (h *horizontal) flush(a *Asm, xa, xb, xc, xd SimdRegister, count uint) {
+func (h *horizontal) flush(a *Asm, xa, xb, xc, xd SimdRegister, op Register, count uint) {
 	xwidth := uint(1 << h.xshift)
-	a.Addq(BP, Constant(xwidth*count))
+	a.Addq(op, Constant(xwidth*count))
 	a.Paddd(xa, X14)
 	a.Paddd(xb, X14)
 	a.Paddd(xc, X14)
@@ -302,7 +302,7 @@ func (h *horizontal) taps4(a *Asm) {
 	a.Addq(BX, Constant(xwidth*8))
 	h.madd4(a, xwidth, X0, X1, X2, X3, 0, X10, X11)
 	h.madd4(a, xwidth, X4, X5, X6, X7, 1, X12, X13)
-	h.flush(a, X0, X2, X4, X6, 8)
+	h.flush(a, X0, X2, X4, X6, BP, 8)
 }
 
 func (h *horizontal) load8(a *Asm, xa, xb SimdRegister, idx uint, xc, xd SimdRegister) {
@@ -354,7 +354,7 @@ func (h *horizontal) taps8(a *Asm) {
 	a.Addq(BX, Constant(xwidth*8))
 	h.madd8(a, xwidth, X8, X9, X10, X11, 2, X12, X13)
 	h.madd8(a, xwidth, X1, X2, X3, X5, 3, X10, X11)
-	h.flush(a, X0, X4, X8, X1, 16)
+	h.flush(a, X0, X4, X8, X1, BP, 16)
 }
 
 func (h *horizontal) loadn(a *Asm, xa, xb, xc, xd SimdRegister) {
@@ -405,20 +405,7 @@ func (h *horizontal) tapsn(a *Asm) {
 		a.Jne(loop)
 		a.Movq(DI, h.dstref)
 	}
-	a.Addq(BX, Constant(xwidth*8))
-	a.Paddd(X0, X14)
-	a.Paddd(X1, X14)
-	a.Paddd(X2, X14)
-	a.Paddd(X3, X14)
 	a.Movq(AX, h.taps)
-	a.Psrad(X0, Constant(14))
-	a.Psrad(X1, Constant(14))
-	a.Psrad(X2, Constant(14))
-	a.Psrad(X3, Constant(14))
 	a.Subq(SI, AX)
-	a.Packssdw(X0, X1)
-	a.Packssdw(X2, X3)
-	a.Packuswb(X0, X2)
-	a.Movou(Address(DI), X0)
-	a.Addq(DI, Constant(xwidth))
+	h.flush(a, X0, X1, X2, X3, BX, 8)
 }
