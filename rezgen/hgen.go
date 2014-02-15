@@ -341,27 +341,20 @@ func (h *horizontal) madd8(a *Asm, xwidth uint, xa, xb, xc, xd SimdRegister, idx
 	a.Pmaddwd(xc, Address(BP, (idx*4+2)*xwidth))
 	a.Pmaddwd(xd, Address(BP, (idx*4+3)*xwidth))
 	h.padd8(a, xa, xb, xc, xd, tmpa, tmpb)
-	a.Paddd(xa, X14)
-	a.Psrad(xa, Constant(14))
 }
 
 func (h *horizontal) taps8(a *Asm) {
 	xwidth := uint(1 << h.xshift)
 	h.load8(a, X0, X1, 0, X2, X3)
-	h.madd8(a, xwidth, X0, X1, X2, X3, 0, X6, X7)
 	h.load8(a, X4, X5, 1, X6, X7)
+	h.load8(a, X8, X9, 2, X10, X11)
+	h.madd8(a, xwidth, X0, X1, X2, X3, 0, X12, X13)
 	h.madd8(a, xwidth, X4, X5, X6, X7, 1, X1, X2)
-	h.load8(a, X1, X2, 2, X3, X5)
-	h.madd8(a, xwidth, X1, X2, X3, X5, 2, X6, X7)
-	h.load8(a, X2, X3, 3, X5, X6)
-	h.madd8(a, xwidth, X2, X3, X5, X6, 3, X7, X8)
+	h.load8(a, X1, X2, 3, X3, X5)
 	a.Addq(BX, Constant(xwidth*8))
-	a.Addq(BP, Constant(xwidth*16))
-	a.Packssdw(X0, X4)
-	a.Packssdw(X1, X2)
-	a.Packuswb(X0, X1)
-	a.Movou(Address(DI), X0)
-	a.Addq(DI, Constant(xwidth))
+	h.madd8(a, xwidth, X8, X9, X10, X11, 2, X12, X13)
+	h.madd8(a, xwidth, X1, X2, X3, X5, 3, X10, X11)
+	h.flush(a, X0, X4, X8, X1, 16)
 }
 
 func (h *horizontal) loadn(a *Asm, xa, xb, xc, xd SimdRegister) {
