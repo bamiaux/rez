@@ -226,20 +226,24 @@ func (h *horizontal) load2(a *Asm, op Operand, idx uint) {
 	a.Pinsrw(op, Address(SI, DX), Constant(3))
 }
 
+func (h *horizontal) madd(a *Asm, xa, xb, xc, xd SimdRegister, idx uint) {
+	a.Punpcklbw(xa, X15)
+	a.Pmaddwd(xa, Address(BP, (idx*4+0)*h.xwidth))
+	a.Punpcklbw(xb, X15)
+	a.Pmaddwd(xb, Address(BP, (idx*4+1)*h.xwidth))
+	a.Punpcklbw(xc, X15)
+	a.Pmaddwd(xc, Address(BP, (idx*4+2)*h.xwidth))
+	a.Punpcklbw(xd, X15)
+	a.Pmaddwd(xd, Address(BP, (idx*4+3)*h.xwidth))
+}
+
 func (h *horizontal) taps2(a *Asm) {
 	h.load2(a, X0, 0)
 	h.load2(a, X1, 1)
 	h.load2(a, X2, 2)
 	h.load2(a, X3, 3)
-	a.Punpcklbw(X0, X15)
-	a.Punpcklbw(X1, X15)
-	a.Punpcklbw(X2, X15)
-	a.Punpcklbw(X3, X15)
 	a.Addq(BX, Constant(h.xwidth*8))
-	a.Pmaddwd(X0, Address(BP, h.xwidth*0))
-	a.Pmaddwd(X1, Address(BP, h.xwidth*1))
-	a.Pmaddwd(X2, Address(BP, h.xwidth*2))
-	a.Pmaddwd(X3, Address(BP, h.xwidth*3))
+	h.madd(a, X0, X1, X2, X3, 0)
 	h.flush(a, X0, X1, X2, X3, BP, 4)
 }
 
@@ -274,14 +278,7 @@ func (h *horizontal) load4(a *Asm, xa, xb SimdRegister, idx int, tmpa, tmpb Simd
 }
 
 func (h *horizontal) madd4(a *Asm, xa, xb, xc, xd SimdRegister, idx uint, tmpa, tmpb SimdRegister) {
-	a.Punpcklbw(xa, X15)
-	a.Pmaddwd(xa, Address(BP, (idx*4+0)*h.xwidth))
-	a.Punpcklbw(xb, X15)
-	a.Pmaddwd(xb, Address(BP, (idx*4+1)*h.xwidth))
-	a.Punpcklbw(xc, X15)
-	a.Pmaddwd(xc, Address(BP, (idx*4+2)*h.xwidth))
-	a.Punpcklbw(xd, X15)
-	a.Pmaddwd(xd, Address(BP, (idx*4+3)*h.xwidth))
+	h.madd(a, xa, xb, xc, xd, idx)
 	a.Movo(tmpa, xa)
 	a.Movo(tmpb, xc)
 	a.Shufps(tmpa, xb, Constant(0xDD))
@@ -330,14 +327,7 @@ func (h *horizontal) padd8(a *Asm, xa, xb, xc, xd, tmpa, tmpb SimdRegister) {
 }
 
 func (h *horizontal) madd8(a *Asm, xa, xb, xc, xd SimdRegister, idx uint, tmpa, tmpb SimdRegister) {
-	a.Punpcklbw(xa, X15)
-	a.Punpcklbw(xb, X15)
-	a.Punpcklbw(xc, X15)
-	a.Punpcklbw(xd, X15)
-	a.Pmaddwd(xa, Address(BP, (idx*4+0)*h.xwidth))
-	a.Pmaddwd(xb, Address(BP, (idx*4+1)*h.xwidth))
-	a.Pmaddwd(xc, Address(BP, (idx*4+2)*h.xwidth))
-	a.Pmaddwd(xd, Address(BP, (idx*4+3)*h.xwidth))
+	h.madd(a, xa, xb, xc, xd, idx)
 	h.padd8(a, xa, xb, xc, xd, tmpa, tmpb)
 }
 
@@ -363,14 +353,7 @@ func (h *horizontal) loadn(a *Asm, xa, xb, xc, xd SimdRegister) {
 }
 
 func (h *horizontal) maddn(a *Asm, xa, xb, xc, xd SimdRegister) {
-	a.Punpcklbw(xa, X15)
-	a.Pmaddwd(xa, Address(BP, h.xwidth*0))
-	a.Punpcklbw(xb, X15)
-	a.Pmaddwd(xb, Address(BP, h.xwidth*1))
-	a.Punpcklbw(xc, X15)
-	a.Pmaddwd(xc, Address(BP, h.xwidth*2))
-	a.Punpcklbw(xd, X15)
-	a.Pmaddwd(xd, Address(BP, h.xwidth*3))
+	h.madd(a, xa, xb, xc, xd, 0)
 	a.Addq(BP, Constant(h.xwidth*4))
 }
 
