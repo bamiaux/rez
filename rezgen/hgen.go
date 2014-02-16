@@ -216,14 +216,14 @@ func (h *horizontal) asmtaps(a *Asm) {
 }
 
 func (h *horizontal) load2(a *Asm, op Operand, idx uint) {
-	a.Movq(AX, Address(BX, (idx*4+0)*8))
-	a.Movq(DX, Address(BX, (idx*4+1)*8))
-	a.Pinsrw(op, Address(SI, AX), Constant(0))
-	a.Pinsrw(op, Address(SI, DX), Constant(1))
-	a.Movq(AX, Address(BX, (idx*4+2)*8))
-	a.Movq(DX, Address(BX, (idx*4+3)*8))
-	a.Pinsrw(op, Address(SI, AX), Constant(2))
-	a.Pinsrw(op, Address(SI, DX), Constant(3))
+	a.Movq(R8, Address(BX, (idx*4+0)*8))
+	a.Movq(R9, Address(BX, (idx*4+1)*8))
+	a.Movq(R10, Address(BX, (idx*4+2)*8))
+	a.Movq(R11, Address(BX, (idx*4+3)*8))
+	a.Pinsrw(op, Address(SI, R8), Constant(0))
+	a.Pinsrw(op, Address(SI, R9), Constant(1))
+	a.Pinsrw(op, Address(SI, R10), Constant(2))
+	a.Pinsrw(op, Address(SI, R11), Constant(3))
 }
 
 func (h *horizontal) madd(a *Asm, xa, xb, xc, xd SimdRegister, idx uint) {
