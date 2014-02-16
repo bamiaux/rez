@@ -13,6 +13,7 @@ import (
 type horizontal struct {
 	xtaps  int
 	xshift uint
+	xwidth uint
 	// global data
 	zero  Operand
 	hbits Operand
@@ -38,7 +39,7 @@ type horizontal struct {
 }
 
 func hgen(a *Asm) {
-	h := horizontal{xshift: 4}
+	h := horizontal{xshift: 4, xwidth: 16}
 	h.zero = a.Data("zero", bytes.Repeat([]byte{0x00}, 16))
 	h.hbits = a.Data("hbits", bytes.Repeat([]byte{0x00, 0x00, 0x20, 0x00}, 4))
 	h.genscale(a, 2)
@@ -234,18 +235,16 @@ func (h *horizontal) taps2(a *Asm) {
 	a.Punpcklbw(X1, X15)
 	a.Punpcklbw(X2, X15)
 	a.Punpcklbw(X3, X15)
-	xwidth := uint(1 << h.xshift)
-	a.Addq(BX, Constant(xwidth*8))
-	a.Pmaddwd(X0, Address(BP, xwidth*0))
-	a.Pmaddwd(X1, Address(BP, xwidth*1))
-	a.Pmaddwd(X2, Address(BP, xwidth*2))
-	a.Pmaddwd(X3, Address(BP, xwidth*3))
+	a.Addq(BX, Constant(h.xwidth*8))
+	a.Pmaddwd(X0, Address(BP, h.xwidth*0))
+	a.Pmaddwd(X1, Address(BP, h.xwidth*1))
+	a.Pmaddwd(X2, Address(BP, h.xwidth*2))
+	a.Pmaddwd(X3, Address(BP, h.xwidth*3))
 	h.flush(a, X0, X1, X2, X3, BP, 4)
 }
 
 func (h *horizontal) flush(a *Asm, xa, xb, xc, xd SimdRegister, op Register, count uint) {
-	xwidth := uint(1 << h.xshift)
-	a.Addq(op, Constant(xwidth*count))
+	a.Addq(op, Constant(h.xwidth*count))
 	a.Paddd(xa, X14)
 	a.Paddd(xb, X14)
 	a.Paddd(xc, X14)
@@ -258,7 +257,7 @@ func (h *horizontal) flush(a *Asm, xa, xb, xc, xd SimdRegister, op Register, cou
 	a.Packssdw(xc, xd)
 	a.Packuswb(xa, xc)
 	a.Movou(Address(DI), xa)
-	a.Addq(DI, Constant(xwidth))
+	a.Addq(DI, Constant(h.xwidth))
 }
 
 func (h *horizontal) load4(a *Asm, xa, xb SimdRegister, idx int, tmpa, tmpb SimdRegister) {
@@ -274,15 +273,15 @@ func (h *horizontal) load4(a *Asm, xa, xb SimdRegister, idx int, tmpa, tmpb Simd
 	a.Punpckldq(xb, tmpb)
 }
 
-func (h *horizontal) madd4(a *Asm, xwidth uint, xa, xb, xc, xd SimdRegister, idx uint, tmpa, tmpb SimdRegister) {
+func (h *horizontal) madd4(a *Asm, xa, xb, xc, xd SimdRegister, idx uint, tmpa, tmpb SimdRegister) {
 	a.Punpcklbw(xa, X15)
-	a.Pmaddwd(xa, Address(BP, (idx*4+0)*xwidth))
+	a.Pmaddwd(xa, Address(BP, (idx*4+0)*h.xwidth))
 	a.Punpcklbw(xb, X15)
-	a.Pmaddwd(xb, Address(BP, (idx*4+1)*xwidth))
+	a.Pmaddwd(xb, Address(BP, (idx*4+1)*h.xwidth))
 	a.Punpcklbw(xc, X15)
-	a.Pmaddwd(xc, Address(BP, (idx*4+2)*xwidth))
+	a.Pmaddwd(xc, Address(BP, (idx*4+2)*h.xwidth))
 	a.Punpcklbw(xd, X15)
-	a.Pmaddwd(xd, Address(BP, (idx*4+3)*xwidth))
+	a.Pmaddwd(xd, Address(BP, (idx*4+3)*h.xwidth))
 	a.Movo(tmpa, xa)
 	a.Movo(tmpb, xc)
 	a.Shufps(tmpa, xb, Constant(0xDD))
@@ -294,14 +293,13 @@ func (h *horizontal) madd4(a *Asm, xwidth uint, xa, xb, xc, xd SimdRegister, idx
 }
 
 func (h *horizontal) taps4(a *Asm) {
-	xwidth := uint(1 << h.xshift)
 	h.load4(a, X0, X1, 0, X8, X9)
 	h.load4(a, X2, X3, 1, X10, X11)
 	h.load4(a, X4, X5, 2, X12, X13)
 	h.load4(a, X6, X7, 3, X8, X9)
-	a.Addq(BX, Constant(xwidth*8))
-	h.madd4(a, xwidth, X0, X1, X2, X3, 0, X10, X11)
-	h.madd4(a, xwidth, X4, X5, X6, X7, 1, X12, X13)
+	a.Addq(BX, Constant(h.xwidth*8))
+	h.madd4(a, X0, X1, X2, X3, 0, X10, X11)
+	h.madd4(a, X4, X5, X6, X7, 1, X12, X13)
 	h.flush(a, X0, X2, X4, X6, BP, 8)
 }
 
@@ -331,29 +329,28 @@ func (h *horizontal) padd8(a *Asm, xa, xb, xc, xd, tmpa, tmpb SimdRegister) {
 	a.Paddd(xa, tmpa)
 }
 
-func (h *horizontal) madd8(a *Asm, xwidth uint, xa, xb, xc, xd SimdRegister, idx uint, tmpa, tmpb SimdRegister) {
+func (h *horizontal) madd8(a *Asm, xa, xb, xc, xd SimdRegister, idx uint, tmpa, tmpb SimdRegister) {
 	a.Punpcklbw(xa, X15)
 	a.Punpcklbw(xb, X15)
 	a.Punpcklbw(xc, X15)
 	a.Punpcklbw(xd, X15)
-	a.Pmaddwd(xa, Address(BP, (idx*4+0)*xwidth))
-	a.Pmaddwd(xb, Address(BP, (idx*4+1)*xwidth))
-	a.Pmaddwd(xc, Address(BP, (idx*4+2)*xwidth))
-	a.Pmaddwd(xd, Address(BP, (idx*4+3)*xwidth))
+	a.Pmaddwd(xa, Address(BP, (idx*4+0)*h.xwidth))
+	a.Pmaddwd(xb, Address(BP, (idx*4+1)*h.xwidth))
+	a.Pmaddwd(xc, Address(BP, (idx*4+2)*h.xwidth))
+	a.Pmaddwd(xd, Address(BP, (idx*4+3)*h.xwidth))
 	h.padd8(a, xa, xb, xc, xd, tmpa, tmpb)
 }
 
 func (h *horizontal) taps8(a *Asm) {
-	xwidth := uint(1 << h.xshift)
 	h.load8(a, X0, X1, 0, X2, X3)
 	h.load8(a, X4, X5, 1, X6, X7)
 	h.load8(a, X8, X9, 2, X10, X11)
-	h.madd8(a, xwidth, X0, X1, X2, X3, 0, X12, X13)
-	h.madd8(a, xwidth, X4, X5, X6, X7, 1, X1, X2)
+	h.madd8(a, X0, X1, X2, X3, 0, X12, X13)
+	h.madd8(a, X4, X5, X6, X7, 1, X1, X2)
 	h.load8(a, X1, X2, 3, X3, X5)
-	a.Addq(BX, Constant(xwidth*8))
-	h.madd8(a, xwidth, X8, X9, X10, X11, 2, X12, X13)
-	h.madd8(a, xwidth, X1, X2, X3, X5, 3, X10, X11)
+	a.Addq(BX, Constant(h.xwidth*8))
+	h.madd8(a, X8, X9, X10, X11, 2, X12, X13)
+	h.madd8(a, X1, X2, X3, X5, 3, X10, X11)
 	h.flush(a, X0, X4, X8, X1, BP, 16)
 }
 
@@ -365,26 +362,25 @@ func (h *horizontal) loadn(a *Asm, xa, xb, xc, xd SimdRegister) {
 	a.Addq(SI, Constant(2))
 }
 
-func (h *horizontal) maddn(a *Asm, xwidth uint, xa, xb, xc, xd SimdRegister) {
+func (h *horizontal) maddn(a *Asm, xa, xb, xc, xd SimdRegister) {
 	a.Punpcklbw(xa, X15)
-	a.Pmaddwd(xa, Address(BP, xwidth*0))
+	a.Pmaddwd(xa, Address(BP, h.xwidth*0))
 	a.Punpcklbw(xb, X15)
-	a.Pmaddwd(xb, Address(BP, xwidth*1))
+	a.Pmaddwd(xb, Address(BP, h.xwidth*1))
 	a.Punpcklbw(xc, X15)
-	a.Pmaddwd(xc, Address(BP, xwidth*2))
+	a.Pmaddwd(xc, Address(BP, h.xwidth*2))
 	a.Punpcklbw(xd, X15)
-	a.Pmaddwd(xd, Address(BP, xwidth*3))
-	a.Addq(BP, Constant(xwidth*4))
+	a.Pmaddwd(xd, Address(BP, h.xwidth*3))
+	a.Addq(BP, Constant(h.xwidth*4))
 }
 
 func (h *horizontal) tapsn(a *Asm) {
-	xwidth := uint(1 << h.xshift)
 	h.loadn(a, X0, X1, X2, X3)
-	h.maddn(a, xwidth, X0, X1, X2, X3)
+	h.maddn(a, X0, X1, X2, X3)
 	// unloop when we know how many taps
 	for i := 1; i*2 < h.xtaps; i++ {
 		h.loadn(a, X4, X5, X6, X7)
-		h.maddn(a, xwidth, X4, X5, X6, X7)
+		h.maddn(a, X4, X5, X6, X7)
 		a.Paddd(X0, X4)
 		a.Paddd(X1, X5)
 		a.Paddd(X2, X6)
@@ -396,7 +392,7 @@ func (h *horizontal) tapsn(a *Asm) {
 		loop := a.NewLabel("loop")
 		a.Label(loop)
 		h.loadn(a, X4, X5, X6, X7)
-		h.maddn(a, xwidth, X4, X5, X6, X7)
+		h.maddn(a, X4, X5, X6, X7)
 		a.Paddd(X0, X4)
 		a.Paddd(X1, X5)
 		a.Paddd(X2, X6)
