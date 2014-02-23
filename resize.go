@@ -28,7 +28,7 @@ type Resizer interface {
 	Resize(dst, src []byte, width, height, dstPitch, srcPitch int)
 }
 
-type scaler func(dst, src []byte, cof []int16, off []int,
+type scaler func(dst, src []byte, cof, off []int16,
 	taps, width, height, dstPitch, srcPitch int)
 
 type context struct {
@@ -96,14 +96,14 @@ func NewResize(cfg *ResizerConfig, filter Filter) Resizer {
 }
 
 func scaleSlice(group *sync.WaitGroup, scaler scaler,
-	dst, src []byte, cof []int16, off []int, taps, width, height, dp, sp int) {
+	dst, src []byte, cof, off []int16, taps, width, height, dp, sp int) {
 	defer group.Done()
 	scaler(dst, src, cof, off, taps, width, height, dp, sp)
 }
 
 func scaleSlices(group *sync.WaitGroup, scaler scaler,
 	vertical bool, threads, taps, width, height, dp, sp int,
-	dst, src []byte, cof []int16, cofscale int, off []int) {
+	dst, src []byte, cof []int16, cofscale int, off []int16) {
 	defer group.Done()
 	nh := height / threads
 	if nh < 1 {
@@ -140,7 +140,7 @@ func scaleSlices(group *sync.WaitGroup, scaler scaler,
 		if vertical {
 			ci += ih * taps * cofscale
 			for j := 0; j < ih; j++ {
-				si += sp * off[oi+j]
+				si += sp * int(off[oi+j])
 			}
 			oi += ih
 		} else {

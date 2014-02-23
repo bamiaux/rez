@@ -8,7 +8,7 @@ package rez
 
 {{range $_, $tab := .taps}}
 {{$n := len $tab}}
-func h8scale{{$n}}Go(dst, src []byte, cof []int16, off []int,
+func h8scale{{$n}}Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -27,11 +27,11 @@ func h8scale{{$n}}Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale{{$n}}Go(dst, src []byte, cof []int16, off []int,
+func v8scale{{$n}}Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
-		src = src[sp*yoff:]
+		src = src[sp*int(yoff):]
 		d := dst[di:]
 		for x := range d[:width] {
 			pix:={{range $i, $_ := $tab}}{{if gt $i 0}} +

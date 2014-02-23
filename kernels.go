@@ -11,7 +11,7 @@ import (
 
 type kernel struct {
 	coeffs   []int16
-	offsets  []int
+	offsets  []int16
 	size     int
 	cofscale int // how many more coeffs do we have
 }
@@ -97,9 +97,9 @@ func (w weights) Swap(i, j int) {
 	w[i], w[j] = w[j], w[i]
 }
 
-func makeIntegerKernel(taps, size int, cof, sums []float64, pos []int16, field, idx uint) ([]int16, []int) {
+func makeIntegerKernel(taps, size int, cof, sums []float64, pos []int16, field, idx uint) ([]int16, []int16) {
 	coeffs := make([]int16, taps*size)
-	offsets := make([]int, size)
+	offsets := make([]int16, size)
 	weights := make(weights, taps)
 	for i, sum := range sums[:size] {
 		for j, w := range cof[:taps] {
@@ -116,7 +116,7 @@ func makeIntegerKernel(taps, size int, cof, sums []float64, pos []int16, field, 
 			diff = w - iw
 		}
 		cof = cof[taps:]
-		off := int(pos[i]) + int(field) - int(idx)
+		off := pos[i] + int16(field-idx)
 		offsets[i] = off >> field
 	}
 	return coeffs, offsets
@@ -197,9 +197,9 @@ func prepareHorizontalCoeffs(cof []int16, size, taps int) []int16 {
 	return dst
 }
 
-func unpack(coeffs []int16, offsets []int, taps, pack int) ([]int16, []int, int) {
+func unpack(coeffs, offsets []int16, taps, pack int) ([]int16, []int16, int) {
 	cof := make([]int16, len(coeffs)*pack*pack)
-	off := make([]int, len(offsets)*pack)
+	off := make([]int16, len(offsets)*pack)
 	di := 0
 	ci := 0
 	oi := 0
@@ -212,7 +212,7 @@ func unpack(coeffs []int16, offsets []int, taps, pack int) ([]int16, []int, int)
 			next[i*pack] = coeffs[ci+i]
 		}
 		for i := 0; i < pack; i++ {
-			off[oi+i] = offset * pack
+			off[oi+i] = offset * int16(pack)
 			copy(cof[di+pack*taps*i:], next)
 			copy(next[i+1:], next[i:])
 			copy(next[:i+1], zero)

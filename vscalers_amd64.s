@@ -33,7 +33,7 @@ norollback_0:
 yloop_1:
 		MOVQ	R9, SI
 		MOVQ	R10, DX
-		MOVQ	(DX), AX
+		MOVWQSX	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
 		MOVQ	SI, R9
@@ -167,7 +167,7 @@ nomaxloop_2:
 nobackroll_4:
 		ADDQ	R11, DI
 		ADDQ	$32, BP
-		ADDQ	$8, R10
+		ADDQ	$2, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_1
 		RET
@@ -200,7 +200,7 @@ norollback_5:
 yloop_6:
 		MOVQ	R9, SI
 		MOVQ	R10, DX
-		MOVQ	(DX), AX
+		MOVWQSX	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
 		MOVQ	SI, R9
@@ -324,7 +324,7 @@ nomaxloop_7:
 nobackroll_9:
 		ADDQ	R11, DI
 		ADDQ	$64, BP
-		ADDQ	$8, R10
+		ADDQ	$2, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_6
 		RET
@@ -357,7 +357,7 @@ norollback_10:
 yloop_11:
 		MOVQ	R9, SI
 		MOVQ	R10, DX
-		MOVQ	(DX), AX
+		MOVWQSX	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
 		MOVQ	SI, R9
@@ -523,7 +523,7 @@ nomaxloop_12:
 nobackroll_14:
 		ADDQ	R11, DI
 		ADDQ	$96, BP
-		ADDQ	$8, R10
+		ADDQ	$2, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_11
 		RET
@@ -556,7 +556,7 @@ norollback_15:
 yloop_16:
 		MOVQ	R9, SI
 		MOVQ	R10, DX
-		MOVQ	(DX), AX
+		MOVWQSX	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
 		MOVQ	SI, R9
@@ -762,7 +762,7 @@ nomaxloop_17:
 nobackroll_19:
 		ADDQ	R11, DI
 		ADDQ	$128, BP
-		ADDQ	$8, R10
+		ADDQ	$2, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_16
 		RET
@@ -795,7 +795,7 @@ norollback_20:
 yloop_21:
 		MOVQ	R9, SI
 		MOVQ	R10, DX
-		MOVQ	(DX), AX
+		MOVWQSX	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
 		MOVQ	SI, R9
@@ -1041,7 +1041,7 @@ nomaxloop_22:
 nobackroll_24:
 		ADDQ	R11, DI
 		ADDQ	$160, BP
-		ADDQ	$8, R10
+		ADDQ	$2, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_21
 		RET
@@ -1074,7 +1074,7 @@ norollback_25:
 yloop_26:
 		MOVQ	R9, SI
 		MOVQ	R10, DX
-		MOVQ	(DX), AX
+		MOVWQSX	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
 		MOVQ	SI, R9
@@ -1360,7 +1360,7 @@ nomaxloop_27:
 nobackroll_29:
 		ADDQ	R11, DI
 		ADDQ	$192, BP
-		ADDQ	$8, R10
+		ADDQ	$2, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_26
 		RET
@@ -1397,7 +1397,7 @@ norollback_30:
 yloop_31:
 		MOVQ	R9, SI
 		MOVQ	R10, DX
-		MOVQ	(DX), AX
+		MOVWQSX	(DX), AX
 		MULQ	BX
 		ADDQ	AX, SI
 		MOVQ	SI, R9
@@ -1579,7 +1579,7 @@ nobackroll_35:
 		MOVQ	taps+96(FP), DX
 		SHLQ	$4, DX
 		ADDQ	DX, BP
-		ADDQ	$8, R10
+		ADDQ	$2, R10
 		SUBQ	$1, height+112(FP)
 		JNE	yloop_31
 		RET

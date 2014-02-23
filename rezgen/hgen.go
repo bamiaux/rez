@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	xshift = 4
-	xwidth = 1 << xshift // 128-bits per simd register
+	xshift  = 4
+	xwidth  = 1 << xshift // 128-bits per simd register
+	xoffset = 2           // 16-bits per coeff
 )
 
 type horizontal struct {
@@ -177,7 +178,7 @@ func (h *horizontal) line(a *Asm) {
 }
 
 func (h *horizontal) taps1(a *Asm, idx int) {
-	a.Movq(DX, Address(BX))
+	a.Movwqsx(DX, Address(BX))
 	a.Movbqzx(AX, Address(SI, DX, idx))
 	a.Movwqsx(DX, Address(BP, idx*2))
 	a.Imulq(DX)
@@ -213,16 +214,16 @@ func (h *horizontal) asmtaps(a *Asm) {
 	a.Addq(AX, Constant(1<<(14-1)))
 	a.Cmovql(AX, h.zero)
 	a.Shrq(AX, Constant(14))
-	a.Addq(BX, Constant(8))
+	a.Addq(BX, Constant(xoffset))
 	a.Movb(Address(DI), AL)
 	a.Addq(DI, Constant(1))
 }
 
 func (h *horizontal) load2(a *Asm, op Operand, idx uint) {
-	a.Movq(R8, Address(BX, (idx*4+0)*8))
-	a.Movq(R9, Address(BX, (idx*4+1)*8))
-	a.Movq(R10, Address(BX, (idx*4+2)*8))
-	a.Movq(R11, Address(BX, (idx*4+3)*8))
+	a.Movwqsx(R8, Address(BX, (idx*4+0)*xoffset))
+	a.Movwqsx(R9, Address(BX, (idx*4+1)*xoffset))
+	a.Movwqsx(R10, Address(BX, (idx*4+2)*xoffset))
+	a.Movwqsx(R11, Address(BX, (idx*4+3)*xoffset))
 	a.Pinsrw(op, Address(SI, R8), Constant(0))
 	a.Pinsrw(op, Address(SI, R9), Constant(1))
 	a.Pinsrw(op, Address(SI, R10), Constant(2))
@@ -245,7 +246,7 @@ func (h *horizontal) taps2(a *Asm) {
 	h.load2(a, X1, 1)
 	h.load2(a, X2, 2)
 	h.load2(a, X3, 3)
-	a.Addq(BX, Constant(xwidth*8))
+	a.Addq(BX, Constant(xwidth*xoffset))
 	h.madd(a, X0, X1, X2, X3, 0)
 	h.flush(a, X0, X1, X2, X3, BP, 4)
 }
@@ -267,13 +268,13 @@ func (h *horizontal) flush(a *Asm, xa, xb, xc, xd SimdRegister, op Register, cou
 	a.Addq(DI, Constant(xwidth))
 }
 
-func (h *horizontal) load4(a *Asm, xa, xb SimdRegister, idx int, tmpa, tmpb SimdRegister) {
-	a.Movq(AX, Address(BX, (idx*4+0)*8))
-	a.Movq(DX, Address(BX, (idx*4+1)*8))
+func (h *horizontal) load4(a *Asm, xa, xb SimdRegister, idx uint, tmpa, tmpb SimdRegister) {
+	a.Movwqsx(AX, Address(BX, (idx*4+0)*xoffset))
+	a.Movwqsx(DX, Address(BX, (idx*4+1)*xoffset))
 	a.Movd(xa, Address(SI, AX))
 	a.Movd(tmpa, Address(SI, DX))
-	a.Movq(AX, Address(BX, (idx*4+2)*8))
-	a.Movq(DX, Address(BX, (idx*4+3)*8))
+	a.Movwqsx(AX, Address(BX, (idx*4+2)*xoffset))
+	a.Movwqsx(DX, Address(BX, (idx*4+3)*xoffset))
 	a.Movd(xb, Address(SI, AX))
 	a.Movd(tmpb, Address(SI, DX))
 	a.Punpckldq(xa, tmpa)
@@ -297,20 +298,20 @@ func (h *horizontal) taps4(a *Asm) {
 	h.load4(a, X2, X3, 1, X10, X11)
 	h.load4(a, X4, X5, 2, X12, X13)
 	h.load4(a, X6, X7, 3, X8, X9)
-	a.Addq(BX, Constant(xwidth*8))
+	a.Addq(BX, Constant(xwidth*xoffset))
 	h.madd4(a, X0, X1, X2, X3, 0, X10, X11)
 	h.madd4(a, X4, X5, X6, X7, 1, X12, X13)
 	h.flush(a, X0, X2, X4, X6, BP, 8)
 }
 
 func (h *horizontal) load8(a *Asm, xa, xb SimdRegister, idx uint, xc, xd SimdRegister) {
-	a.Movq(AX, Address(BX, (idx*4+0)*8))
+	a.Movwqsx(AX, Address(BX, (idx*4+0)*xoffset))
 	a.Movq(xa, Address(SI, AX))
-	a.Movq(DX, Address(BX, (idx*4+1)*8))
+	a.Movwqsx(DX, Address(BX, (idx*4+1)*xoffset))
 	a.Movq(xb, Address(SI, DX))
-	a.Movq(AX, Address(BX, (idx*4+2)*8))
+	a.Movwqsx(AX, Address(BX, (idx*4+2)*xoffset))
 	a.Movq(xc, Address(SI, AX))
-	a.Movq(DX, Address(BX, (idx*4+3)*8))
+	a.Movwqsx(DX, Address(BX, (idx*4+3)*xoffset))
 	a.Movq(xd, Address(SI, DX))
 }
 
@@ -341,7 +342,7 @@ func (h *horizontal) taps8(a *Asm) {
 	h.madd8(a, X0, X1, X2, X3, 0, X12, X13)
 	h.madd8(a, X4, X5, X6, X7, 1, X1, X2)
 	h.load8(a, X1, X2, 3, X3, X5)
-	a.Addq(BX, Constant(xwidth*8))
+	a.Addq(BX, Constant(xwidth*xoffset))
 	h.madd8(a, X8, X9, X10, X11, 2, X12, X13)
 	h.madd8(a, X1, X2, X3, X5, 3, X10, X11)
 	h.flush(a, X0, X4, X8, X1, BP, 16)
@@ -389,5 +390,5 @@ func (h *horizontal) tapsn(a *Asm) {
 	}
 	a.Movq(AX, h.taps)
 	a.Subq(SI, AX)
-	h.flush(a, X0, X1, X2, X3, BX, 8)
+	h.flush(a, X0, X1, X2, X3, BX, xoffset)
 }

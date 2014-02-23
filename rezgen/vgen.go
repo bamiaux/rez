@@ -89,7 +89,7 @@ func (v *vertical) frame(a *Asm) {
 	a.Label(yloop)
 	a.Movq(SI, v.srcref)
 	a.Movq(DX, v.offref)
-	a.Movq(AX, Address(DX))
+	a.Movwqsx(AX, Address(DX))
 	a.Mulq(BX)
 	a.Addq(SI, AX)
 	a.Movq(v.srcref, SI)
@@ -150,7 +150,7 @@ func (v *vertical) nextline(a *Asm) {
 	} else {
 		a.Addq(BP, Constant(xwidth*v.xtaps))
 	}
-	a.Addq(v.offref, Constant(8))
+	a.Addq(v.offref, Constant(xoffset))
 }
 
 func (v *vertical) line(a *Asm) {

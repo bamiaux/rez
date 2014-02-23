@@ -6,7 +6,7 @@ package rez
 
 // This file is auto-generated - do not modify
 
-func h8scale2Go(dst, src []byte, cof []int16, off []int,
+func h8scale2Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -25,11 +25,11 @@ func h8scale2Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale2Go(dst, src []byte, cof []int16, off []int,
+func v8scale2Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
-		src = src[sp*yoff:]
+		src = src[sp*int(yoff):]
 		d := dst[di:]
 		for x := range d[:width] {
 			pix := int(src[sp*0+x])*int(cof[0]) +
@@ -41,7 +41,7 @@ func v8scale2Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func h8scale4Go(dst, src []byte, cof []int16, off []int,
+func h8scale4Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -62,11 +62,11 @@ func h8scale4Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale4Go(dst, src []byte, cof []int16, off []int,
+func v8scale4Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
-		src = src[sp*yoff:]
+		src = src[sp*int(yoff):]
 		d := dst[di:]
 		for x := range d[:width] {
 			pix := int(src[sp*0+x])*int(cof[0]) +
@@ -80,7 +80,7 @@ func v8scale4Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func h8scale6Go(dst, src []byte, cof []int16, off []int,
+func h8scale6Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -103,11 +103,11 @@ func h8scale6Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale6Go(dst, src []byte, cof []int16, off []int,
+func v8scale6Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
-		src = src[sp*yoff:]
+		src = src[sp*int(yoff):]
 		d := dst[di:]
 		for x := range d[:width] {
 			pix := int(src[sp*0+x])*int(cof[0]) +
@@ -123,7 +123,7 @@ func v8scale6Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func h8scale8Go(dst, src []byte, cof []int16, off []int,
+func h8scale8Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -148,11 +148,11 @@ func h8scale8Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale8Go(dst, src []byte, cof []int16, off []int,
+func v8scale8Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
-		src = src[sp*yoff:]
+		src = src[sp*int(yoff):]
 		d := dst[di:]
 		for x := range d[:width] {
 			pix := int(src[sp*0+x])*int(cof[0]) +
@@ -170,7 +170,7 @@ func v8scale8Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func h8scale10Go(dst, src []byte, cof []int16, off []int,
+func h8scale10Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -197,11 +197,11 @@ func h8scale10Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale10Go(dst, src []byte, cof []int16, off []int,
+func v8scale10Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
-		src = src[sp*yoff:]
+		src = src[sp*int(yoff):]
 		d := dst[di:]
 		for x := range d[:width] {
 			pix := int(src[sp*0+x])*int(cof[0]) +
@@ -221,7 +221,7 @@ func v8scale10Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func h8scale12Go(dst, src []byte, cof []int16, off []int,
+func h8scale12Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	si := 0
@@ -250,11 +250,11 @@ func h8scale12Go(dst, src []byte, cof []int16, off []int,
 	}
 }
 
-func v8scale12Go(dst, src []byte, cof []int16, off []int,
+func v8scale12Go(dst, src []byte, cof, off []int16,
 	taps, width, height, dp, sp int) {
 	di := 0
 	for _, yoff := range off[:height] {
-		src = src[sp*yoff:]
+		src = src[sp*int(yoff):]
 		d := dst[di:]
 		for x := range d[:width] {
 			pix := int(src[sp*0+x])*int(cof[0]) +
