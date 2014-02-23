@@ -11,10 +11,7 @@ import (
 )
 
 type vertical struct {
-	xtaps  int
-	xshift uint
-	xwidth int
-	mmx    bool
+	xtaps int
 	// global data
 	zero  Operand
 	hbits Operand
@@ -39,8 +36,6 @@ type vertical struct {
 
 func vgen(a *Asm) {
 	v := vertical{}
-	v.xshift = 4
-	v.xwidth = 1 << v.xshift
 	v.zero = a.Data("zero", bytes.Repeat([]byte{0x00}, 16))
 	v.hbits = a.Data("hbits", bytes.Repeat([]byte{0x00, 0x00, 0x20, 0x00}, 4))
 	v.genscale(a, 2)
@@ -110,26 +105,26 @@ func (v *vertical) setup(a *Asm) {
 	a.Movq(DX, CX)
 	a.Subq(BX, CX)
 	if v.xtaps == 2 {
-		a.Andq(DX, Constant(v.xwidth*2-1))
-		a.Shrq(CX, Constant(v.xshift+1))
+		a.Andq(DX, Constant(xwidth*2-1))
+		a.Shrq(CX, Constant(xshift+1))
 	} else {
-		a.Andq(DX, Constant(v.xwidth-1))
-		a.Shrq(CX, Constant(v.xshift))
+		a.Andq(DX, Constant(xwidth-1))
+		a.Shrq(CX, Constant(xshift))
 	}
 	a.Movq(v.dstoff, BX)
 	a.Movq(v.maxroll, CX)
 	a.Movq(AX, DX)
 	if v.xtaps == 2 {
-		a.Andq(AX, Constant(v.xwidth-1))
+		a.Andq(AX, Constant(xwidth-1))
 	} else {
-		a.Andq(AX, Constant(v.xwidth>>1-1))
+		a.Andq(AX, Constant(xwidth>>1-1))
 	}
 	norollback := a.NewLabel("norollback")
 	a.Je(norollback)
 	if v.xtaps == 2 {
-		a.Subq(AX, Constant(v.xwidth*2))
+		a.Subq(AX, Constant(xwidth*2))
 	} else {
-		a.Subq(AX, Constant(v.xwidth))
+		a.Subq(AX, Constant(xwidth))
 	}
 	a.Neg(AX)
 	a.Label(norollback)
@@ -150,10 +145,10 @@ func (v *vertical) nextline(a *Asm) {
 	a.Addq(DI, v.dstoff)
 	if v.xtaps == 0 {
 		a.Movq(DX, v.taps)
-		a.Shlq(DX, Constant(v.xshift))
+		a.Shlq(DX, Constant(xshift))
 		a.Addq(BP, DX)
 	} else {
-		a.Addq(BP, Constant(v.xwidth*v.xtaps))
+		a.Addq(BP, Constant(xwidth*v.xtaps))
 	}
 	a.Addq(v.offref, Constant(8))
 }
@@ -186,10 +181,10 @@ func (v *vertical) line(a *Asm) {
 
 func (v *vertical) taps2(a *Asm) {
 	a.Movou(X12, Address(BP))
-	a.Movou(X0, Address(SI, BX, SX0, v.xwidth*0))
-	a.Movou(X4, Address(SI, BX, SX0, v.xwidth*1))
-	a.Movou(X3, Address(SI, BX, SX1, v.xwidth*0))
-	a.Movou(X7, Address(SI, BX, SX1, v.xwidth*1))
+	a.Movou(X0, Address(SI, BX, SX0, xwidth*0))
+	a.Movou(X4, Address(SI, BX, SX0, xwidth*1))
+	a.Movou(X3, Address(SI, BX, SX1, xwidth*0))
+	a.Movou(X7, Address(SI, BX, SX1, xwidth*1))
 	a.Movo(X2, X0)
 	a.Movo(X6, X4)
 	a.Punpcklbw(X0, X3)
@@ -238,10 +233,10 @@ func (v *vertical) taps2(a *Asm) {
 	a.Packssdw(X6, X7)
 	a.Packuswb(X0, X2)
 	a.Packuswb(X4, X6)
-	a.Movou(Address(DI, v.xwidth*0), X0)
-	a.Movou(Address(DI, v.xwidth*1), X4)
-	a.Addq(SI, Constant(v.xwidth*2))
-	a.Addq(DI, Constant(v.xwidth*2))
+	a.Movou(Address(DI, xwidth*0), X0)
+	a.Movou(Address(DI, xwidth*1), X4)
+	a.Addq(SI, Constant(xwidth*2))
+	a.Addq(DI, Constant(xwidth*2))
 }
 
 func (v *vertical) tapsn(a *Asm) {
@@ -266,8 +261,8 @@ func (v *vertical) tapsn(a *Asm) {
 	a.Packssdw(X2, X3)
 	a.Packuswb(X0, X2)
 	a.Movou(Address(DI), X0)
-	a.Addq(SI, Constant(v.xwidth))
-	a.Addq(DI, Constant(v.xwidth))
+	a.Addq(SI, Constant(xwidth))
+	a.Addq(DI, Constant(xwidth))
 }
 
 func (v *vertical) tapsn4(a *Asm) {
@@ -275,7 +270,7 @@ func (v *vertical) tapsn4(a *Asm) {
 	a.Movou(X3, Address(SI, BX, SX1))
 	a.Movou(X4, Address(SI, BX, SX2))
 	a.Movou(X10, Address(BP))
-	a.Movou(X11, Address(BP, v.xwidth*2))
+	a.Movou(X11, Address(BP, xwidth*2))
 	a.Addq(SI, BX)
 	a.Movou(X7, Address(SI, BX, SX2))
 	a.Movo(X2, X0)
@@ -313,7 +308,7 @@ func (v *vertical) tapsn4(a *Asm) {
 
 func (v *vertical) left2taps(a *Asm) {
 	for i := 2; i*2 < v.xtaps; i++ {
-		v.tapsn2(a, X4, X5, X6, X7, AX, Address(BP, i*v.xwidth*2))
+		v.tapsn2(a, X4, X5, X6, X7, AX, Address(BP, i*xwidth*2))
 		if i*2+1 < v.xtaps {
 			a.Leaq(AX, Address(AX, BX, SX2))
 		}
@@ -327,10 +322,10 @@ func (v *vertical) left2taps(a *Asm) {
 func (v *vertical) leftntaps(a *Asm) {
 	a.Movq(R15, v.inner)
 	a.Movq(DX, BP)
-	a.Addq(DX, Constant(v.xwidth*2))
+	a.Addq(DX, Constant(xwidth*2))
 	innerloop := a.NewLabel("innerloop")
 	a.Label(innerloop)
-	a.Addq(DX, Constant(v.xwidth*2))
+	a.Addq(DX, Constant(xwidth*2))
 	v.tapsn2(a, X4, X5, X6, X7, AX, Address(DX))
 	a.Leaq(AX, Address(AX, BX, SX2))
 	a.Paddd(X0, X4)

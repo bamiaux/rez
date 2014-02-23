@@ -13,7 +13,7 @@ import (
 
 func main() {
 	mode := flag.String("gen", "horizontal", "set which generator to use")
-    flag.Parse()
+	flag.Parse()
 	a := NewAsm(os.Stdout)
 	switch *mode {
 	case "horizontal":

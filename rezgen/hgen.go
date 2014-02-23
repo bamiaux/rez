@@ -10,10 +10,13 @@ import (
 	. "github.com/bamiaux/rez/asm"
 )
 
+const (
+	xshift = 4
+	xwidth = 1 << xshift // 128-bits per simd register
+)
+
 type horizontal struct {
-	xtaps  int
-	xshift uint
-	xwidth uint
+	xtaps int
 	// global data
 	zero  Operand
 	hbits Operand
@@ -39,7 +42,7 @@ type horizontal struct {
 }
 
 func hgen(a *Asm) {
-	h := horizontal{xshift: 4, xwidth: 16}
+	h := horizontal{}
 	h.zero = a.Data("zero", bytes.Repeat([]byte{0x00}, 16))
 	h.hbits = a.Data("hbits", bytes.Repeat([]byte{0x00, 0x00, 0x20, 0x00}, 4))
 	h.genscale(a, 2)
@@ -88,8 +91,8 @@ func (h *horizontal) setup(a *Asm) {
 	a.Movq(CX, h.width)
 	a.Movq(DX, CX)
 	a.Subq(BX, CX)
-	a.Shrq(CX, Constant(h.xshift))
-	a.Andq(DX, Constant(1<<h.xshift-1))
+	a.Shrq(CX, Constant(xshift))
+	a.Andq(DX, Constant(1<<xshift-1))
 	a.Movq(h.dstoff, BX)
 	a.Movq(h.simdroll, CX)
 	a.Movq(h.asmroll, DX)
@@ -228,13 +231,13 @@ func (h *horizontal) load2(a *Asm, op Operand, idx uint) {
 
 func (h *horizontal) madd(a *Asm, xa, xb, xc, xd SimdRegister, idx uint) {
 	a.Punpcklbw(xa, X15)
-	a.Pmaddwd(xa, Address(BP, (idx*4+0)*h.xwidth))
+	a.Pmaddwd(xa, Address(BP, (idx*4+0)*xwidth))
 	a.Punpcklbw(xb, X15)
-	a.Pmaddwd(xb, Address(BP, (idx*4+1)*h.xwidth))
+	a.Pmaddwd(xb, Address(BP, (idx*4+1)*xwidth))
 	a.Punpcklbw(xc, X15)
-	a.Pmaddwd(xc, Address(BP, (idx*4+2)*h.xwidth))
+	a.Pmaddwd(xc, Address(BP, (idx*4+2)*xwidth))
 	a.Punpcklbw(xd, X15)
-	a.Pmaddwd(xd, Address(BP, (idx*4+3)*h.xwidth))
+	a.Pmaddwd(xd, Address(BP, (idx*4+3)*xwidth))
 }
 
 func (h *horizontal) taps2(a *Asm) {
@@ -242,13 +245,13 @@ func (h *horizontal) taps2(a *Asm) {
 	h.load2(a, X1, 1)
 	h.load2(a, X2, 2)
 	h.load2(a, X3, 3)
-	a.Addq(BX, Constant(h.xwidth*8))
+	a.Addq(BX, Constant(xwidth*8))
 	h.madd(a, X0, X1, X2, X3, 0)
 	h.flush(a, X0, X1, X2, X3, BP, 4)
 }
 
 func (h *horizontal) flush(a *Asm, xa, xb, xc, xd SimdRegister, op Register, count uint) {
-	a.Addq(op, Constant(h.xwidth*count))
+	a.Addq(op, Constant(xwidth*count))
 	a.Paddd(xa, X14)
 	a.Paddd(xb, X14)
 	a.Paddd(xc, X14)
@@ -261,7 +264,7 @@ func (h *horizontal) flush(a *Asm, xa, xb, xc, xd SimdRegister, op Register, cou
 	a.Packssdw(xc, xd)
 	a.Packuswb(xa, xc)
 	a.Movou(Address(DI), xa)
-	a.Addq(DI, Constant(h.xwidth))
+	a.Addq(DI, Constant(xwidth))
 }
 
 func (h *horizontal) load4(a *Asm, xa, xb SimdRegister, idx int, tmpa, tmpb SimdRegister) {
@@ -294,7 +297,7 @@ func (h *horizontal) taps4(a *Asm) {
 	h.load4(a, X2, X3, 1, X10, X11)
 	h.load4(a, X4, X5, 2, X12, X13)
 	h.load4(a, X6, X7, 3, X8, X9)
-	a.Addq(BX, Constant(h.xwidth*8))
+	a.Addq(BX, Constant(xwidth*8))
 	h.madd4(a, X0, X1, X2, X3, 0, X10, X11)
 	h.madd4(a, X4, X5, X6, X7, 1, X12, X13)
 	h.flush(a, X0, X2, X4, X6, BP, 8)
@@ -338,7 +341,7 @@ func (h *horizontal) taps8(a *Asm) {
 	h.madd8(a, X0, X1, X2, X3, 0, X12, X13)
 	h.madd8(a, X4, X5, X6, X7, 1, X1, X2)
 	h.load8(a, X1, X2, 3, X3, X5)
-	a.Addq(BX, Constant(h.xwidth*8))
+	a.Addq(BX, Constant(xwidth*8))
 	h.madd8(a, X8, X9, X10, X11, 2, X12, X13)
 	h.madd8(a, X1, X2, X3, X5, 3, X10, X11)
 	h.flush(a, X0, X4, X8, X1, BP, 16)
@@ -354,7 +357,7 @@ func (h *horizontal) loadn(a *Asm, xa, xb, xc, xd SimdRegister) {
 
 func (h *horizontal) maddn(a *Asm, xa, xb, xc, xd SimdRegister) {
 	h.madd(a, xa, xb, xc, xd, 0)
-	a.Addq(BP, Constant(h.xwidth*4))
+	a.Addq(BP, Constant(xwidth*4))
 }
 
 func (h *horizontal) tapsn(a *Asm) {
