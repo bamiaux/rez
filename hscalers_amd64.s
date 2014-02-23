@@ -1,3 +1,9 @@
+// Copyright 2014 Benoît Amiaux. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+// This file is auto-generated - do not modify
+
 DATA	zero_0<>+0x00(SB)/8, $0x0000000000000000
 DATA	zero_0<>+0x08(SB)/8, $0x0000000000000000
 GLOBL	zero_0<>(SB), $16
