@@ -66,7 +66,8 @@ func convert(t Tester, dst, src image.Image, interlaced bool, filter Filter) {
 
 func convertFiles(t Tester, w, h int, input string, filter Filter, rgb bool) (image.Image, image.Image) {
 	src := readImage(t, input)
-	dst := image.Image(image.NewYCbCr(image.Rect(0, 0, w, h), image.YCbCrSubsampleRatio420))
+	raw := image.NewYCbCr(image.Rect(0, 0, w*2, h*2), image.YCbCrSubsampleRatio420)
+	dst := raw.SubImage(image.Rect(7, 7, 7+w, 7+h))
 	if rgb {
 		src = toRgb(src)
 		dst = toRgb(dst)
@@ -187,7 +188,8 @@ func TestInterlacedFail(t *testing.T) {
 
 func testDegradation(t *testing.T, w, h int, interlaced, rgb bool, filter Filter) {
 	src := readImage(t, "testdata/lenna.jpg")
-	dst := image.Image(image.NewYCbCr(image.Rect(0, 0, w, h), image.YCbCrSubsampleRatio444))
+	ydst := image.NewYCbCr(image.Rect(0, 0, w*2, h*2), image.YCbCrSubsampleRatio444)
+	dst := ydst.SubImage(image.Rect(7, 7, 7+w, 7+h))
 	if rgb {
 		src = toRgb(src)
 		dst = toRgb(dst)

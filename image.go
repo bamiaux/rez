@@ -341,6 +341,7 @@ func getRgbDescriptor(rgb *image.RGBA, interlaced bool) Descriptor {
 
 func getYuvPlanes(yuv *image.YCbCr, d *Descriptor) []Plane {
 	planes := []Plane{}
+	x, y := yuv.Rect.Min.X, yuv.Rect.Min.Y
 	for i := 0; i < maxPlanes; i++ {
 		p := Plane{
 			Width:  d.GetWidth(i),
@@ -350,13 +351,16 @@ func getYuvPlanes(yuv *image.YCbCr, d *Descriptor) []Plane {
 		switch i {
 		case 0:
 			p.Pitch = yuv.YStride
-			p.Data = yuv.Y[yuv.YOffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
+			base := yuv.YOffset(x, y)
+			p.Data = yuv.Y[base : base+p.Pitch*(p.Height-1)+p.Width]
 		case 1:
 			p.Pitch = yuv.CStride
-			p.Data = yuv.Cb[yuv.COffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
+			base := yuv.COffset(x, y)
+			p.Data = yuv.Cb[base : base+p.Pitch*(p.Height-1)+p.Width]
 		case 2:
 			p.Pitch = yuv.CStride
-			p.Data = yuv.Cr[yuv.COffset(0, 0) : p.Pitch*(p.Height-1)+p.Width]
+			base := yuv.COffset(x, y)
+			p.Data = yuv.Cr[base : base+p.Pitch*(p.Height-1)+p.Width]
 		}
 		planes = append(planes, p)
 	}
@@ -365,12 +369,14 @@ func getYuvPlanes(yuv *image.YCbCr, d *Descriptor) []Plane {
 
 func getRgbPlane(rgb *image.RGBA, d *Descriptor) []Plane {
 	p := Plane{
-		Width:  d.GetWidth(0),
-		Height: d.GetHeight(0),
+		Width:  d.Width,
+		Height: d.Height,
 		Pack:   d.Pack,
 		Pitch:  rgb.Stride,
 	}
-	p.Data = rgb.Pix[rgb.PixOffset(0, 0) : p.Pitch*(p.Height-1)+p.Width*p.Pack]
+	x, y := rgb.Rect.Min.X, rgb.Rect.Min.Y
+	base := rgb.PixOffset(x, y)
+	p.Data = rgb.Pix[base : base+p.Pitch*(p.Height-1)+p.Width*p.Pack]
 	return []Plane{p}
 }
 
