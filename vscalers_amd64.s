@@ -21,12 +21,12 @@ TEXT ·v8scale2(SB),4,$0-136
 		MOVQ	BX, R11
 		MOVQ	CX, R12
 		MOVQ	DX, AX
-		ANDQ	$15, AX
+		ORQ	AX, AX
 		JE	norollback_0
-		SUBQ	$32, AX
-		NEGQ	AX
+		SUBQ	$32, DX
+		NEGQ	DX
 norollback_0:
-		MOVQ	AX, R13
+		MOVQ	DX, R13
 		MOVQ	off+72(FP), CX
 		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
@@ -169,7 +169,6 @@ nomaxloop_2:
 		MOVOU	X4, 16(DI)
 		ADDQ	$32, SI
 		ADDQ	$32, DI
-		SUBQ	$1, CX
 nobackroll_4:
 		ADDQ	R11, DI
 		ADDQ	$32, BP
@@ -188,12 +187,12 @@ TEXT ·v8scale4(SB),4,$0-136
 		MOVQ	BX, R11
 		MOVQ	CX, R12
 		MOVQ	DX, AX
-		ANDQ	$7, AX
+		ORQ	AX, AX
 		JE	norollback_5
-		SUBQ	$16, AX
-		NEGQ	AX
+		SUBQ	$16, DX
+		NEGQ	DX
 norollback_5:
-		MOVQ	AX, R13
+		MOVQ	DX, R13
 		MOVQ	off+72(FP), CX
 		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
@@ -326,7 +325,6 @@ nomaxloop_7:
 		MOVOU	X0, (DI)
 		ADDQ	$16, SI
 		ADDQ	$16, DI
-		SUBQ	$1, CX
 nobackroll_9:
 		ADDQ	R11, DI
 		ADDQ	$64, BP
@@ -345,12 +343,12 @@ TEXT ·v8scale6(SB),4,$0-136
 		MOVQ	BX, R11
 		MOVQ	CX, R12
 		MOVQ	DX, AX
-		ANDQ	$7, AX
+		ORQ	AX, AX
 		JE	norollback_10
-		SUBQ	$16, AX
-		NEGQ	AX
+		SUBQ	$16, DX
+		NEGQ	DX
 norollback_10:
-		MOVQ	AX, R13
+		MOVQ	DX, R13
 		MOVQ	off+72(FP), CX
 		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
@@ -525,7 +523,6 @@ nomaxloop_12:
 		MOVOU	X0, (DI)
 		ADDQ	$16, SI
 		ADDQ	$16, DI
-		SUBQ	$1, CX
 nobackroll_14:
 		ADDQ	R11, DI
 		ADDQ	$96, BP
@@ -544,12 +541,12 @@ TEXT ·v8scale8(SB),4,$0-136
 		MOVQ	BX, R11
 		MOVQ	CX, R12
 		MOVQ	DX, AX
-		ANDQ	$7, AX
+		ORQ	AX, AX
 		JE	norollback_15
-		SUBQ	$16, AX
-		NEGQ	AX
+		SUBQ	$16, DX
+		NEGQ	DX
 norollback_15:
-		MOVQ	AX, R13
+		MOVQ	DX, R13
 		MOVQ	off+72(FP), CX
 		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
@@ -764,7 +761,6 @@ nomaxloop_17:
 		MOVOU	X0, (DI)
 		ADDQ	$16, SI
 		ADDQ	$16, DI
-		SUBQ	$1, CX
 nobackroll_19:
 		ADDQ	R11, DI
 		ADDQ	$128, BP
@@ -783,12 +779,12 @@ TEXT ·v8scale10(SB),4,$0-136
 		MOVQ	BX, R11
 		MOVQ	CX, R12
 		MOVQ	DX, AX
-		ANDQ	$7, AX
+		ORQ	AX, AX
 		JE	norollback_20
-		SUBQ	$16, AX
-		NEGQ	AX
+		SUBQ	$16, DX
+		NEGQ	DX
 norollback_20:
-		MOVQ	AX, R13
+		MOVQ	DX, R13
 		MOVQ	off+72(FP), CX
 		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
@@ -1043,7 +1039,6 @@ nomaxloop_22:
 		MOVOU	X0, (DI)
 		ADDQ	$16, SI
 		ADDQ	$16, DI
-		SUBQ	$1, CX
 nobackroll_24:
 		ADDQ	R11, DI
 		ADDQ	$160, BP
@@ -1062,12 +1057,12 @@ TEXT ·v8scale12(SB),4,$0-136
 		MOVQ	BX, R11
 		MOVQ	CX, R12
 		MOVQ	DX, AX
-		ANDQ	$7, AX
+		ORQ	AX, AX
 		JE	norollback_25
-		SUBQ	$16, AX
-		NEGQ	AX
+		SUBQ	$16, DX
+		NEGQ	DX
 norollback_25:
-		MOVQ	AX, R13
+		MOVQ	DX, R13
 		MOVQ	off+72(FP), CX
 		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
@@ -1362,7 +1357,6 @@ nomaxloop_27:
 		MOVOU	X0, (DI)
 		ADDQ	$16, SI
 		ADDQ	$16, DI
-		SUBQ	$1, CX
 nobackroll_29:
 		ADDQ	R11, DI
 		ADDQ	$192, BP
@@ -1381,12 +1375,12 @@ TEXT ·v8scaleN(SB),4,$0-136
 		MOVQ	BX, R11
 		MOVQ	CX, R12
 		MOVQ	DX, AX
-		ANDQ	$7, AX
+		ORQ	AX, AX
 		JE	norollback_30
-		SUBQ	$16, AX
-		NEGQ	AX
+		SUBQ	$16, DX
+		NEGQ	DX
 norollback_30:
-		MOVQ	AX, R13
+		MOVQ	DX, R13
 		MOVQ	off+72(FP), CX
 		MOVQ	CX, R10
 		MOVO	zero_0<>(SB), X14
@@ -1579,7 +1573,6 @@ innerloop_36:
 		MOVOU	X0, (DI)
 		ADDQ	$16, SI
 		ADDQ	$16, DI
-		SUBQ	$1, CX
 nobackroll_35:
 		ADDQ	R11, DI
 		MOVQ	taps+96(FP), DX

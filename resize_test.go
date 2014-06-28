@@ -123,6 +123,16 @@ func testConvertWith(t *testing.T, rgb bool) {
 func TestConvertYuv(t *testing.T) { testConvertWith(t, false) }
 func TestConvertRgb(t *testing.T) { testConvertWith(t, true) }
 
+func expectPsnrs(t *testing.T, psnrs []float64, y, uv float64) {
+	for i, v := range psnrs {
+		min := float64(y)
+		if i > 0 {
+			min = uv
+		}
+		expect(t, v > min, true)
+	}
+}
+
 func testBoundariesWith(t *testing.T, interlaced, rgb bool) {
 	// test we don't go overread/overwrite even with exotic resolutions
 	src := readImage(t, "testdata/lenna.jpg")
@@ -146,6 +156,24 @@ func testBoundariesWith(t *testing.T, interlaced, rgb bool) {
 			convert(t, dst, tmp, interlaced, f)
 			convert(t, tmp, dst, interlaced, f)
 		}
+		input := src
+		final := image.Image(image.NewYCbCr(src.Bounds(), image.YCbCrSubsampleRatio420))
+		if rgb {
+			input = toRgb(src)
+			final = toRgb(final)
+		}
+		convert(t, final, tmp, interlaced, f)
+		if false {
+			suffix := "yuv"
+			if rgb {
+				suffix = "rgb"
+			}
+			name := fmt.Sprintf("testdata/output-%v-%v-%v.png", toInterlacedString(interlaced), f.Name(), suffix)
+			writeImage(t, name, final)
+		}
+		psnrs, err := Psnr(input, final)
+		expect(t, err, nil)
+		expectPsnrs(t, psnrs, 25, 38)
 	}
 }
 
@@ -214,13 +242,7 @@ func testDegradation(t *testing.T, w, h int, interlaced, rgb bool, filter Filter
 		name := fmt.Sprintf("testdata/degraded-%vx%v-%v-%v-%v.png", w, h, toInterlacedString(interlaced), filter.Name(), suffix)
 		writeImage(t, name, src)
 	}
-	for i, v := range psnrs {
-		min := float64(22)
-		if i > 0 {
-			min = 30
-		}
-		expect(t, v > min, true)
-	}
+	expectPsnrs(t, psnrs, 22, 30)
 }
 
 func TestDegradations(t *testing.T) {

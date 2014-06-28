@@ -113,22 +113,18 @@ func (v *vertical) setup(a *Asm) {
 	}
 	a.Movq(v.dstoff, BX)
 	a.Movq(v.maxroll, CX)
-	a.Movq(AX, DX)
-	if v.xtaps == 2 {
-		a.Andq(AX, Constant(xwidth-1))
-	} else {
-		a.Andq(AX, Constant(xwidth>>1-1))
-	}
 	norollback := a.NewLabel("norollback")
+	a.Movq(AX, DX)
+	a.Orq(AX, AX)
 	a.Je(norollback)
 	if v.xtaps == 2 {
-		a.Subq(AX, Constant(xwidth*2))
+		a.Subq(DX, Constant(xwidth*2))
 	} else {
-		a.Subq(AX, Constant(xwidth))
+		a.Subq(DX, Constant(xwidth))
 	}
-	a.Neg(AX)
+	a.Neg(DX)
 	a.Label(norollback)
-	a.Movq(v.backroll, AX)
+	a.Movq(v.backroll, DX)
 	a.Movq(CX, v.off[0])
 	a.Movq(v.offref, CX)
 	a.Movo(X14, v.zero)
@@ -175,7 +171,6 @@ func (v *vertical) line(a *Asm) {
 	nobackroll := a.NewLabel("nobackroll")
 	a.Je(nobackroll)
 	taps(a)
-	a.Subq(CX, Constant(1))
 	a.Label(nobackroll)
 }
 
