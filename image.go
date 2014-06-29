@@ -261,7 +261,10 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 			group.Add(1)
 			go func(i int) {
 				defer group.Done()
-				threads := min(cfg.Threads, hout>>1)
+				threads := min(cfg.Threads, hout)
+				if cfg.Output.Interlaced {
+					threads = min(cfg.Threads, hout>>1)
+				}
 				ctx.hrez[i] = NewResize(&ResizerConfig{
 					Depth:      8,
 					Input:      hin,
