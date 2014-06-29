@@ -38,7 +38,7 @@ func benchSpeed(b *testing.B, bt BenchType) {
 	src := image.NewYCbCr(image.Rect(0, 0, bt.win, bt.hin), image.YCbCrSubsampleRatio420)
 	convert(b, src, raw, bt.interlaced, bt.filter)
 	dst := image.NewYCbCr(image.Rect(0, 0, bt.wout, bt.hout), image.YCbCrSubsampleRatio420)
-	converter := prepare(b, dst, src, bt.interlaced, bt.filter)
+	converter := prepare(b, dst, src, bt.interlaced, bt.filter, 0)
 	b.SetBytes(int64(bt.wout*bt.hout*3) >> 1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

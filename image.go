@@ -212,6 +212,13 @@ func checkConversion(dst, src *Descriptor) error {
 	return nil
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // NewConverter returns a Converter interface
 // cfg = converter configuration
 // filter = filter used for resizing
@@ -238,6 +245,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 			group.Add(1)
 			go func(i int) {
 				defer group.Done()
+				threads := min(cfg.Threads, hout)
 				ctx.wrez[i] = NewResize(&ResizerConfig{
 					Depth:      8,
 					Input:      win,
@@ -245,7 +253,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 					Vertical:   false,
 					Interlaced: false,
 					Pack:       cfg.Input.Pack,
-					Threads:    cfg.Threads,
+					Threads:    threads,
 				}, filter)
 			}(i)
 		}
@@ -253,6 +261,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 			group.Add(1)
 			go func(i int) {
 				defer group.Done()
+				threads := min(cfg.Threads, hout>>1)
 				ctx.hrez[i] = NewResize(&ResizerConfig{
 					Depth:      8,
 					Input:      hin,
@@ -260,7 +269,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 					Vertical:   true,
 					Interlaced: cfg.Output.Interlaced,
 					Pack:       cfg.Output.Pack,
-					Threads:    cfg.Threads,
+					Threads:    threads,
 				}, filter)
 			}(i)
 		}

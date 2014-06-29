@@ -49,17 +49,18 @@ func writeImage(t Tester, name string, img image.Image) {
 	expect(t, err, nil)
 }
 
-func prepare(t Tester, dst, src image.Image, interlaced bool, filter Filter) Converter {
+func prepare(t Tester, dst, src image.Image, interlaced bool, filter Filter, threads int) Converter {
 	cfg, err := PrepareConversion(dst, src)
 	cfg.Input.Interlaced = interlaced
 	cfg.Output.Interlaced = interlaced
+	cfg.Threads = threads
 	converter, err := NewConverter(cfg, filter)
 	expect(t, err, nil)
 	return converter
 }
 
 func convert(t Tester, dst, src image.Image, interlaced bool, filter Filter) {
-	converter := prepare(t, dst, src, interlaced, filter)
+	converter := prepare(t, dst, src, interlaced, filter, 0)
 	err := converter.Convert(dst, src)
 	expect(t, err, nil)
 }
@@ -222,8 +223,8 @@ func testDegradation(t *testing.T, w, h int, interlaced, rgb bool, filter Filter
 		src = toRgb(src)
 		dst = toRgb(dst)
 	}
-	fwd := prepare(t, dst, src, interlaced, filter)
-	bwd := prepare(t, src, dst, interlaced, filter)
+	fwd := prepare(t, dst, src, interlaced, filter, 0)
+	bwd := prepare(t, src, dst, interlaced, filter, 0)
 	for i := 0; i < 32; i++ {
 		err := fwd.Convert(dst, src)
 		expect(t, err, nil)
@@ -252,6 +253,20 @@ func TestDegradations(t *testing.T) {
 		if false { //too slow for now
 			testDegradation(t, 256+1, 256+1, false, true, f)
 			testDegradation(t, 256+2, 256+2, true, true, f)
+		}
+	}
+}
+
+func TestTooManyThreads(t *testing.T) {
+	src := readImage(t, "testdata/lenna.jpg")
+	sizes := []struct{ w, h int }{{128, 16}, {16, 128}, {16, 16}}
+	interlaced := []bool{false, true}
+	for _, s := range sizes {
+		for _, ii := range interlaced {
+			dst := image.NewYCbCr(image.Rect(0, 0, s.w, s.h), image.YCbCrSubsampleRatio420)
+			converter := prepare(t, dst, src, ii, NewBicubicFilter(), 32)
+			err := converter.Convert(dst, src)
+			expect(t, err, nil)
 		}
 	}
 }
