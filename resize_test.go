@@ -237,6 +237,7 @@ func TestDegradations(t *testing.T) {
 				tc := NewTestCase(256+4, 256+4, ii)
 				tc.filter = f
 				tc.rgb = rgb
+				tc.psnrs = []float64{22, 35, 35}
 				runTestCase(t, tc, 32)
 			}
 		}
