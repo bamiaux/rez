@@ -21,6 +21,7 @@ type horizontal struct {
 	// global data
 	zero  Operand
 	hbits Operand
+	u8max Operand
 	// arguments
 	dst    []Operand
 	src    []Operand
@@ -46,6 +47,7 @@ func hgen(a *Asm) {
 	h := horizontal{}
 	h.zero = a.Data("zero", bytes.Repeat([]byte{0x00}, 16))
 	h.hbits = a.Data("hbits", bytes.Repeat([]byte{0x00, 0x00, 0x20, 0x00}, 4))
+	h.u8max = a.Data("u8max", bytes.Repeat([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF}, 2))
 	h.genscale(a, 2)
 	h.genscale(a, 4)
 	h.genscale(a, 8)
@@ -214,6 +216,8 @@ func (h *horizontal) asmtaps(a *Asm) {
 	a.Addq(AX, Constant(1<<(14-1)))
 	a.Cmovql(AX, h.zero)
 	a.Shrq(AX, Constant(14))
+	a.Cmpq(AX, h.u8max)
+	a.Cmovql(AX, h.u8max)
 	a.Addq(BX, Constant(xoffset))
 	a.Movb(Address(DI), AL)
 	a.Addq(DI, Constant(1))

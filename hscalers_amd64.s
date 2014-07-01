@@ -10,6 +10,9 @@ GLOBL	zero_0<>(SB), $16
 DATA	hbits_1<>+0x00(SB)/8, $0x0000200000002000
 DATA	hbits_1<>+0x08(SB)/8, $0x0000200000002000
 GLOBL	hbits_1<>(SB), $16
+DATA	u8max_2<>+0x00(SB)/8, $0x00000000000000FF
+DATA	u8max_2<>+0x08(SB)/8, $0x00000000000000FF
+GLOBL	u8max_2<>(SB), $16
 
 TEXT ·h8scale2(SB),4,$40-136
 		MOVQ	dp+120(FP), BX
@@ -112,6 +115,8 @@ asmloop_2:
 		ADDQ	$8192, AX
 		CMOVQLT	zero_0<>(SB), AX
 		SHRQ	$14, AX
+		CMPQ	u8max_2<>(SB), AX
+		CMOVQLT	u8max_2<>(SB), AX
 		ADDQ	$2, BX
 		MOVB	AL, (DI)
 		ADDQ	$1, DI
@@ -269,6 +274,8 @@ asmloop_7:
 		ADDQ	$8192, AX
 		CMOVQLT	zero_0<>(SB), AX
 		SHRQ	$14, AX
+		CMPQ	u8max_2<>(SB), AX
+		CMOVQLT	u8max_2<>(SB), AX
 		ADDQ	$2, BX
 		MOVB	AL, (DI)
 		ADDQ	$1, DI
@@ -486,6 +493,8 @@ asmloop_12:
 		ADDQ	$8192, AX
 		CMOVQLT	zero_0<>(SB), AX
 		SHRQ	$14, AX
+		CMPQ	u8max_2<>(SB), AX
+		CMOVQLT	u8max_2<>(SB), AX
 		ADDQ	$2, BX
 		MOVB	AL, (DI)
 		ADDQ	$1, DI
@@ -828,6 +837,8 @@ asmloop_17:
 		ADDQ	$8192, AX
 		CMOVQLT	zero_0<>(SB), AX
 		SHRQ	$14, AX
+		CMPQ	u8max_2<>(SB), AX
+		CMOVQLT	u8max_2<>(SB), AX
 		ADDQ	$2, BX
 		MOVB	AL, (DI)
 		ADDQ	$1, DI
@@ -1226,6 +1237,8 @@ asmloop_22:
 		ADDQ	$8192, AX
 		CMOVQLT	zero_0<>(SB), AX
 		SHRQ	$14, AX
+		CMPQ	u8max_2<>(SB), AX
+		CMOVQLT	u8max_2<>(SB), AX
 		ADDQ	$2, BX
 		MOVB	AL, (DI)
 		ADDQ	$1, DI
@@ -1410,6 +1423,8 @@ loop_31:
 		ADDQ	$8192, AX
 		CMOVQLT	zero_0<>(SB), AX
 		SHRQ	$14, AX
+		CMPQ	u8max_2<>(SB), AX
+		CMOVQLT	u8max_2<>(SB), AX
 		ADDQ	$2, BX
 		MOVB	AL, (DI)
 		ADDQ	$1, DI

@@ -312,6 +312,7 @@ func (a *Asm) Neg(op Operand)   { a.op1("NEGQ", op) }
 func (a *Asm) Addq(opa, opb Operand)       { a.op2("ADDQ", opa, opb) }
 func (a *Asm) Andq(opa, opb Operand)       { a.op2("ANDQ", opa, opb) }
 func (a *Asm) Cmovql(opa, opb Operand)     { a.op2("CMOVQLT", opa, opb) }
+func (a *Asm) Cmpq(opa, opb Operand)       { a.op2("CMPQ", opa, opb) }
 func (a *Asm) Leaq(opa, opb Operand)       { a.op2("LEAQ", opa, opb) }
 func (a *Asm) Movb(opa, opb Operand)       { a.op2("MOVB", opa, opb) }
 func (a *Asm) Movbqzx(opa, opb Operand)    { a.op2("MOVBQZX", opa, opb) }
