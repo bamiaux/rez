@@ -51,6 +51,7 @@ func writeImage(t Tester, name string, img image.Image) {
 
 func prepare(t Tester, dst, src image.Image, interlaced bool, filter Filter, threads int) Converter {
 	cfg, err := PrepareConversion(dst, src)
+	expect(t, err, nil)
 	cfg.Input.Interlaced = interlaced
 	cfg.Output.Interlaced = interlaced
 	cfg.Threads = threads
@@ -93,7 +94,7 @@ func TestU8(t *testing.T) {
 	expect(t, u8(256), byte(255))
 }
 
-func toRgb(src image.Image) image.Image {
+func toRgb(src image.Image) *image.RGBA {
 	b := src.Bounds()
 	dst := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 	draw.Draw(dst, b, src, image.ZP, draw.Src)
@@ -124,80 +125,92 @@ func testConvertWith(t *testing.T, rgb bool) {
 func TestConvertYuv(t *testing.T) { testConvertWith(t, false) }
 func TestConvertRgb(t *testing.T) { testConvertWith(t, true) }
 
-func expectPsnrs(t *testing.T, psnrs []float64, y, uv float64) {
-	for i, v := range psnrs {
-		min := float64(y)
-		if i > 0 {
-			min = uv
-		}
-		expect(t, v > min, true)
+type TestCase struct {
+	file       string
+	src        image.Rectangle
+	dst        image.Rectangle
+	rgb        bool
+	interlaced bool
+	filter     Filter
+	threads    int
+	psnrs      []float64
+	psnrRect   image.Rectangle
+	dump       string
+}
+
+func NewTestCase(w, h int, interlaced bool) *TestCase {
+	return &TestCase{
+		file:       "lenna.jpg",
+		filter:     NewBicubicFilter(),
+		interlaced: interlaced,
+		dst:        image.Rect(0, 0, w, h),
 	}
 }
 
-func testBoundariesWith(t *testing.T, interlaced, rgb bool) {
-	// test we don't go overread/overwrite even with exotic resolutions
-	src := readImage(t, "testdata/lenna.jpg")
-	min := 0
-	if interlaced {
-		min = 1
+func runTestCase(t *testing.T, tc *TestCase, cycles int) {
+	srcRaw := readImage(t, "testdata/"+tc.file).(*image.YCbCr)
+	dstRaw := image.NewYCbCr(image.Rect(0, 0, tc.dst.Max.X*2, tc.dst.Max.Y*2), srcRaw.SubsampleRatio)
+	var src, dst, ref image.Image
+	if tc.src.Empty() {
+		tc.src = srcRaw.Bounds()
 	}
-	for _, f := range filters {
-		tmp := image.Image(image.NewYCbCr(image.Rect(0, 0, 256, 256), image.YCbCrSubsampleRatio444))
-		convert(t, tmp, src, interlaced, f)
-		last := tmp.Bounds().Dx()
-		if rgb {
-			tmp = toRgb(tmp)
-		}
-		for i := 32; i > min; i >>= 1 {
-			last += i
-			dst := image.Image(image.NewYCbCr(image.Rect(0, 0, last, last), image.YCbCrSubsampleRatio444))
-			if rgb {
-				dst = toRgb(dst)
-			}
-			convert(t, dst, tmp, interlaced, f)
-			convert(t, tmp, dst, interlaced, f)
-		}
-		input := src
-		final := image.Image(image.NewYCbCr(src.Bounds(), image.YCbCrSubsampleRatio420))
-		if rgb {
-			input = toRgb(src)
-			final = toRgb(final)
-		}
-		convert(t, final, tmp, interlaced, f)
-		if false {
-			suffix := "yuv"
-			if rgb {
-				suffix = "rgb"
-			}
-			name := fmt.Sprintf("testdata/output-%v-%v-%v.png", toInterlacedString(interlaced), f.Name(), suffix)
-			writeImage(t, name, final)
-		}
-		psnrs, err := Psnr(input, final)
+	suffix := "yuv"
+	if tc.rgb {
+		suffix = "rgb"
+		src = toRgb(srcRaw).SubImage(tc.src)
+		ref = toRgb(srcRaw).SubImage(tc.src)
+		dst = toRgb(dstRaw).SubImage(tc.dst)
+	} else {
+		src = srcRaw.SubImage(tc.src)
+		ref = readImage(t, "testdata/"+tc.file).(*image.YCbCr).SubImage(tc.src)
+		dst = dstRaw.SubImage(tc.dst)
+	}
+	fwd := prepare(t, dst, src, tc.interlaced, tc.filter, tc.threads)
+	bwd := prepare(t, src, dst, tc.interlaced, tc.filter, tc.threads)
+	for i := 0; i < cycles; i++ {
+		err := fwd.Convert(dst, src)
 		expect(t, err, nil)
-		expectPsnrs(t, psnrs, 25, 38)
+		err = bwd.Convert(src, dst)
+		expect(t, err, nil)
+	}
+	if len(tc.psnrs) > 0 {
+		var a, b image.Image
+		a, b = ref, src
+		if !tc.psnrRect.Empty() {
+			if tc.rgb {
+				a = a.(*image.RGBA).SubImage(tc.psnrRect)
+				b = b.(*image.RGBA).SubImage(tc.psnrRect)
+			} else {
+				a = a.(*image.YCbCr).SubImage(tc.psnrRect)
+				b = b.(*image.YCbCr).SubImage(tc.psnrRect)
+			}
+		}
+		psnrs, err := Psnr(a, b)
+		expect(t, err, nil)
+		for i, v := range psnrs {
+			if v < tc.psnrs[i] {
+				t.Fatalf("invalid psnr %v < %v\n", v, tc.psnrs[i])
+			}
+		}
+	}
+	if len(tc.dump) > 0 {
+		sb := src.Bounds()
+		db := dst.Bounds()
+		name := fmt.Sprintf("testdata/%v-%vx%v-%vx%v-%v-%v-%v.png",
+			tc.dump, sb.Dx(), sb.Dy(), db.Dx(), db.Dy(), suffix,
+			toInterlacedString(tc.interlaced), tc.filter.Name())
+		writeImage(t, name, src)
 	}
 }
-
-func TestProgressiveYuvBoundaries(t *testing.T) { testBoundariesWith(t, false, false) }
-func TestInterlacedYuvBoundaries(t *testing.T)  { testBoundariesWith(t, true, false) }
-func TestProgressiveRgbBoundaries(t *testing.T) { testBoundariesWith(t, false, true) }
-func TestInterlacedRgbBoundaries(t *testing.T)  { testBoundariesWith(t, true, true) }
 
 func TestCopy(t *testing.T) {
-	a, b := convertFiles(t, 512, 512, "testdata/lenna.jpg", NewBilinearFilter(), false)
-	if false {
-		writeImage(t, "testdata/copy-yuv.png", b)
-	}
-	psnrs, err := Psnr(a, b)
-	expect(t, err, nil)
-	expect(t, psnrs, []float64{math.Inf(1), math.Inf(1), math.Inf(1)})
-	a, b = convertFiles(t, 512, 512, "testdata/lenna.jpg", NewBilinearFilter(), true)
-	if false {
-		writeImage(t, "testdata/copy-rgb.png", b)
-	}
-	psnrs, err = Psnr(a, b)
-	expect(t, err, nil)
-	expect(t, psnrs, []float64{math.Inf(1)})
+	tc := NewTestCase(512, 512, false)
+	tc.psnrs = []float64{math.Inf(1), math.Inf(1), math.Inf(1)}
+	runTestCase(t, tc, 1)
+	tc = NewTestCase(512, 512, false)
+	tc.rgb = true
+	tc.psnrs = []float64{math.Inf(1)}
+	runTestCase(t, tc, 1)
 }
 
 func testInterlacedFailWith(t *testing.T, rgb bool) {
@@ -215,58 +228,29 @@ func TestInterlacedFail(t *testing.T) {
 	testInterlacedFailWith(t, true)
 }
 
-func testDegradation(t *testing.T, w, h int, interlaced, rgb bool, filter Filter) {
-	src := readImage(t, "testdata/lenna.jpg")
-	ydst := image.NewYCbCr(image.Rect(0, 0, w*2, h*2), image.YCbCrSubsampleRatio444)
-	dst := ydst.SubImage(image.Rect(7, 7, 7+w, 7+h))
-	if rgb {
-		src = toRgb(src)
-		dst = toRgb(dst)
-	}
-	fwd := prepare(t, dst, src, interlaced, filter, 0)
-	bwd := prepare(t, src, dst, interlaced, filter, 0)
-	for i := 0; i < 32; i++ {
-		err := fwd.Convert(dst, src)
-		expect(t, err, nil)
-		err = bwd.Convert(src, dst)
-		expect(t, err, nil)
-	}
-	ref := readImage(t, "testdata/lenna.jpg")
-	suffix := "yuv"
-	if rgb {
-		ref = toRgb(ref)
-		suffix = "rgb"
-	}
-	psnrs, err := Psnr(ref, src)
-	expect(t, err, nil)
-	if false {
-		name := fmt.Sprintf("testdata/degraded-%vx%v-%v-%v-%v.png", w, h, toInterlacedString(interlaced), filter.Name(), suffix)
-		writeImage(t, name, src)
-	}
-	expectPsnrs(t, psnrs, 22, 30)
-}
-
 func TestDegradations(t *testing.T) {
+	interlaced := []bool{false, true}
+	rgb := []bool{false, true}
 	for _, f := range filters {
-		testDegradation(t, 256+1, 256+1, false, false, f)
-		testDegradation(t, 256+2, 256+2, true, false, f)
-		if false { //too slow for now
-			testDegradation(t, 256+1, 256+1, false, true, f)
-			testDegradation(t, 256+2, 256+2, true, true, f)
+		for _, ii := range interlaced {
+			for _, rgb := range rgb {
+				tc := NewTestCase(256+4, 256+4, ii)
+				tc.filter = f
+				tc.rgb = rgb
+				runTestCase(t, tc, 32)
+			}
 		}
 	}
 }
 
 func TestTooManyThreads(t *testing.T) {
-	src := readImage(t, "testdata/lenna.jpg")
 	sizes := []struct{ w, h int }{{128, 16}, {16, 128}, {16, 16}}
 	interlaced := []bool{false, true}
 	for _, s := range sizes {
 		for _, ii := range interlaced {
-			dst := image.NewYCbCr(image.Rect(0, 0, s.w, s.h), image.YCbCrSubsampleRatio420)
-			converter := prepare(t, dst, src, ii, NewBicubicFilter(), 32)
-			err := converter.Convert(dst, src)
-			expect(t, err, nil)
+			tc := NewTestCase(s.w, s.h, ii)
+			tc.threads = 32
+			runTestCase(t, tc, 1)
 		}
 	}
 }
