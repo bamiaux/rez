@@ -254,3 +254,12 @@ func TestTooManyThreads(t *testing.T) {
 		}
 	}
 }
+
+func TestSaturatedRightBorder(t *testing.T) {
+	tc := NewTestCase(171, 500, false)
+	tc.file = "bug3img.jpg"
+	tc.rgb = true
+	tc.psnrs = []float64{16}
+	tc.psnrRect = image.Rect(280, 0, 286, 500)
+	runTestCase(t, tc, 1)
+}
