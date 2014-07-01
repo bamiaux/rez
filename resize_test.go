@@ -233,8 +233,12 @@ func TestDegradations(t *testing.T) {
 	rgb := []bool{false, true}
 	for _, f := range filters {
 		for _, ii := range interlaced {
+			offset := 1
+			if ii {
+				offset = 2
+			}
 			for _, rgb := range rgb {
-				tc := NewTestCase(256+4, 256+4, ii)
+				tc := NewTestCase(256+offset, 256+offset, ii)
 				tc.filter = f
 				tc.rgb = rgb
 				tc.psnrs = []float64{22, 35, 35}

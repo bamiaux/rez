@@ -55,7 +55,7 @@ func makeDoubleKernel(cfg *ResizerConfig, filter Filter, field, idx uint) ([]int
 	xstep := 1 / scale
 	// interlaced resize see only one field but still use full res pixel positions
 	ftaps := taps << field
-	size := cfg.Output >> field
+	size := (cfg.Output + int(field*(1-idx))) >> field
 	step /= float64(1 + field)
 	xmid += xstep * float64(field*idx)
 	for i := 0; i < size; i++ {

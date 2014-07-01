@@ -155,12 +155,14 @@ func (c *context) Resize(dst, src []byte, width, height, dp, sp int) {
 	dheight := height
 	if c.cfg.Vertical {
 		dwidth = width
-		dheight = c.cfg.Output >> field
 	}
 	pk := c.cfg.Pack
 	group := sync.WaitGroup{}
 	for i, k := range c.kernels[:1+field] {
 		group.Add(1)
+		if c.cfg.Vertical {
+			dheight = (c.cfg.Output + (1-i)*int(field)) >> field
+		}
 		go scaleSlices(&group, c.scaler, c.cfg.Vertical, c.cfg.Threads,
 			k.size, dwidth*pk, dheight, dp<<field, sp<<field,
 			dst[dp*i:], src[sp*i:], k.coeffs, k.cofscale, k.offsets)

@@ -79,33 +79,11 @@ type Descriptor struct {
 
 // Check returns whether the descriptor is valid
 func (d *Descriptor) Check() error {
-	w := 1
-	h := 1
-	switch d.Ratio {
-	case Ratio411:
-		w = 4
-	case Ratio420:
-		w = 2
-		h = 2
-	case Ratio422:
-		w = 2
-	case Ratio440:
-		h = 2
-	case Ratio444:
-	default:
-		return fmt.Errorf("invalid ratio %v", d.Ratio)
-	}
-	if d.Interlaced {
-		h *= 2
-	}
 	if d.Pack < 1 || d.Pack > 4 {
 		return fmt.Errorf("invalid pack value %v", d.Pack)
 	}
-	if d.Width%w != 0 {
-		return fmt.Errorf("width must be mod %v", w)
-	}
-	if d.Height%h != 0 {
-		return fmt.Errorf("height must be mod %v", h)
+	if d.Interlaced && d.Height%2 != 0 {
+		return fmt.Errorf("invalid height %v", d.Height)
 	}
 	return nil
 }
@@ -120,9 +98,9 @@ func (d *Descriptor) GetWidth(plane int) int {
 	}
 	switch d.Ratio {
 	case Ratio411:
-		return d.Width >> 2
+		return (d.Width + 3) >> 2
 	case Ratio420, Ratio422:
-		return d.Width >> 1
+		return (d.Width + 1) >> 1
 	case Ratio440, Ratio444:
 		return d.Width
 	}
@@ -141,7 +119,7 @@ func (d *Descriptor) GetHeight(plane int) int {
 	case Ratio411, Ratio422, Ratio444:
 		return d.Height
 	case Ratio420, Ratio440:
-		return d.Height >> 1
+		return (d.Height + 1) >> 1
 	}
 	panic(fmt.Errorf("invalid ratio %v", d.Ratio))
 }
