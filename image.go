@@ -219,12 +219,11 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 		hin := cfg.Input.GetHeight(i)
 		wout := cfg.Output.GetWidth(i)
 		hout := cfg.Output.GetHeight(i)
+		idx := i
 		if win != wout {
-			group.Add(1)
-			go func(i int) {
-				defer group.Done()
+			dispatch(&group, cfg.Threads, func() {
 				threads := min(cfg.Threads, hout)
-				ctx.wrez[i] = NewResize(&ResizerConfig{
+				ctx.wrez[idx] = NewResize(&ResizerConfig{
 					Depth:      8,
 					Input:      win,
 					Output:     wout,
@@ -233,17 +232,15 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 					Pack:       cfg.Input.Pack,
 					Threads:    threads,
 				}, filter)
-			}(i)
+			})
 		}
 		if hin != hout {
-			group.Add(1)
-			go func(i int) {
-				defer group.Done()
+			dispatch(&group, cfg.Threads, func() {
 				threads := min(cfg.Threads, hout)
 				if cfg.Output.Interlaced {
 					threads = min(cfg.Threads, hout>>1)
 				}
-				ctx.hrez[i] = NewResize(&ResizerConfig{
+				ctx.hrez[idx] = NewResize(&ResizerConfig{
 					Depth:      8,
 					Input:      hin,
 					Output:     hout,
@@ -252,7 +249,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 					Pack:       cfg.Output.Pack,
 					Threads:    threads,
 				}, filter)
-			}(i)
+			})
 		}
 		if win != wout && hin != hout {
 			p := &Plane{
@@ -380,23 +377,24 @@ func inspectRgb(rgb *image.RGBA, interlaced bool) (*Descriptor, []Plane) {
 	return &d, getRgbPlane(rgb, &d)
 }
 
-func resizePlane(group *sync.WaitGroup, dst, src, buf *Plane, hrez, wrez Resizer) {
-	defer group.Done()
-	hdst := dst
-	wsrc := src
-	if hrez != nil && wrez != nil {
-		hdst = buf
-		wsrc = buf
-	}
-	if hrez != nil {
-		hrez.Resize(hdst.Data, src.Data, src.Width, src.Height, hdst.Pitch, src.Pitch)
-	}
-	if wrez != nil {
-		wrez.Resize(dst.Data, wsrc.Data, wsrc.Width, wsrc.Height, dst.Pitch, wsrc.Pitch)
-	}
-	if hrez == nil && wrez == nil {
-		copyPlane(dst.Data, src.Data, src.Width*src.Pack, src.Height, dst.Pitch, src.Pitch)
-	}
+func resizePlane(group *sync.WaitGroup, threads int, dst, src, buf *Plane, hrez, wrez Resizer) {
+	dispatch(group, threads, func() {
+		hdst := dst
+		wsrc := src
+		if hrez != nil && wrez != nil {
+			hdst = buf
+			wsrc = buf
+		}
+		if hrez != nil {
+			hrez.Resize(hdst.Data, src.Data, src.Width, src.Height, hdst.Pitch, src.Pitch)
+		}
+		if wrez != nil {
+			wrez.Resize(dst.Data, wsrc.Data, wsrc.Width, wsrc.Height, dst.Pitch, wsrc.Pitch)
+		}
+		if hrez == nil && wrez == nil {
+			copyPlane(dst.Data, src.Data, src.Width*src.Pack, src.Height, dst.Pitch, src.Pitch)
+		}
+	})
 }
 
 func (ctx *converterContext) Convert(output, input image.Image) error {
@@ -414,8 +412,7 @@ func (ctx *converterContext) Convert(output, input image.Image) error {
 	}
 	group := sync.WaitGroup{}
 	for i := 0; i < ctx.Input.Planes; i++ {
-		group.Add(1)
-		go resizePlane(&group, &dst[i], &src[i], ctx.buffer[i], ctx.hrez[i], ctx.wrez[i])
+		resizePlane(&group, ctx.Threads, &dst[i], &src[i], ctx.buffer[i], ctx.hrez[i], ctx.wrez[i])
 	}
 	group.Wait()
 	return nil

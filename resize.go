@@ -95,58 +95,71 @@ func NewResize(cfg *ResizerConfig, filter Filter) Resizer {
 	return &ctx
 }
 
-func scaleSlice(group *sync.WaitGroup, scaler scaler,
+func dispatch(group *sync.WaitGroup, threads int, job func()) {
+	if threads == 1 {
+		job()
+	} else {
+		group.Add(1)
+		go func() {
+			job()
+			group.Done()
+		}()
+	}
+}
+
+func scaleSlice(group *sync.WaitGroup, threads int, scaler scaler,
 	dst, src []byte, cof, off []int16, taps, width, height, dp, sp int) {
-	defer group.Done()
-	scaler(dst, src, cof, off, taps, width, height, dp, sp)
+	dispatch(group, threads, func() {
+		scaler(dst, src, cof, off, taps, width, height, dp, sp)
+	})
 }
 
 func scaleSlices(group *sync.WaitGroup, scaler scaler,
 	vertical bool, threads, taps, width, height, dp, sp int,
 	dst, src []byte, cof []int16, cofscale int, off []int16) {
-	defer group.Done()
-	nh := height / threads
-	if nh < 1 {
-		nh = 1
-	}
-	di := 0
-	si := 0
-	oi := 0
-	ci := 0
-	for i := 0; i < threads; i++ {
-		last := i+1 == threads
-		ih := nh
-		if last {
-			ih = height - nh*(threads-1)
+	dispatch(group, threads, func() {
+		nh := height / threads
+		if nh < 1 {
+			nh = 1
 		}
-		if ih == 0 {
-			continue
-		}
-		next := width
-		if vertical {
-			next = ih
-		}
-		group.Add(1)
-		go scaleSlice(group, scaler,
-			dst[di:di+dp*(ih-1)+width],
-			src[si:],
-			cof[ci:ci+next*taps*cofscale],
-			off[oi:oi+next],
-			taps, width, ih, dp, sp)
-		if last {
-			break
-		}
-		di += ih * dp
-		if vertical {
-			ci += ih * taps * cofscale
-			for j := 0; j < ih; j++ {
-				si += sp * int(off[oi+j])
+		di := 0
+		si := 0
+		oi := 0
+		ci := 0
+		for i := 0; i < threads; i++ {
+			last := i+1 == threads
+			ih := nh
+			if last {
+				ih = height - nh*(threads-1)
 			}
-			oi += ih
-		} else {
-			si += sp * ih
+			if ih == 0 {
+				continue
+			}
+			next := width
+			if vertical {
+				next = ih
+			}
+			scaleSlice(group, threads, scaler,
+				dst[di:di+dp*(ih-1)+width],
+				src[si:],
+				cof[ci:ci+next*taps*cofscale],
+				off[oi:oi+next],
+				taps, width, ih, dp, sp)
+			if last {
+				break
+			}
+			di += ih * dp
+			if vertical {
+				ci += ih * taps * cofscale
+				for j := 0; j < ih; j++ {
+					si += sp * int(off[oi+j])
+				}
+				oi += ih
+			} else {
+				si += sp * ih
+			}
 		}
-	}
+	})
 }
 
 func (c *context) Resize(dst, src []byte, width, height, dp, sp int) {
@@ -159,11 +172,10 @@ func (c *context) Resize(dst, src []byte, width, height, dp, sp int) {
 	pk := c.cfg.Pack
 	group := sync.WaitGroup{}
 	for i, k := range c.kernels[:1+field] {
-		group.Add(1)
 		if c.cfg.Vertical {
 			dheight = (c.cfg.Output + (1-i)*int(field)) >> field
 		}
-		go scaleSlices(&group, c.scaler, c.cfg.Vertical, c.cfg.Threads,
+		scaleSlices(&group, c.scaler, c.cfg.Vertical, c.cfg.Threads,
 			k.size, dwidth*pk, dheight, dp<<field, sp<<field,
 			dst[dp*i:], src[sp*i:], k.coeffs, k.cofscale, k.offsets)
 	}
