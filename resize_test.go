@@ -184,7 +184,10 @@ func runTestCase(t *testing.T, tc *TestCase, cycles int) {
 		dst = toRgb(dstRaw).SubImage(tc.dst)
 	} else {
 		src = srcRaw.SubImage(tc.src)
-		ref = readImage(t, "testdata/"+tc.file).(*image.YCbCr).SubImage(tc.src)
+		refRaw := image.NewYCbCr(srcRaw.Bounds(), srcRaw.SubsampleRatio)
+		err := Convert(refRaw, src, nil)
+		expect(t, err, nil)
+		ref = refRaw.SubImage(tc.src)
 		dst = dstRaw.SubImage(tc.dst)
 	}
 	fwd := prepare(t, dst, src, tc.interlaced, tc.filter, tc.threads)
