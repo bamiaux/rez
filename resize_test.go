@@ -147,6 +147,28 @@ func NewTestCase(w, h int, interlaced bool) *TestCase {
 	}
 }
 
+func checkPsnrs(t *testing.T, ref, img image.Image, sub image.Rectangle, min []float64) {
+	var a, b image.Image
+	a, b = ref, img
+	if !sub.Empty() {
+		switch a.(type) {
+		case *image.RGBA:
+			a = a.(*image.RGBA).SubImage(sub)
+			b = b.(*image.RGBA).SubImage(sub)
+		case *image.YCbCr:
+			a = a.(*image.YCbCr).SubImage(sub)
+			b = b.(*image.YCbCr).SubImage(sub)
+		}
+	}
+	psnrs, err := Psnr(a, b)
+	expect(t, err, nil)
+	for i, v := range psnrs {
+		if v < min[i] {
+			t.Fatalf("invalid psnr %v < %v\n", v, min[i])
+		}
+	}
+}
+
 func runTestCase(t *testing.T, tc *TestCase, cycles int) {
 	srcRaw := readImage(t, "testdata/"+tc.file).(*image.YCbCr)
 	dstRaw := image.NewYCbCr(image.Rect(0, 0, tc.dst.Max.X*2, tc.dst.Max.Y*2), srcRaw.SubsampleRatio)
@@ -174,24 +196,7 @@ func runTestCase(t *testing.T, tc *TestCase, cycles int) {
 		expect(t, err, nil)
 	}
 	if len(tc.psnrs) > 0 {
-		var a, b image.Image
-		a, b = ref, src
-		if !tc.psnrRect.Empty() {
-			if tc.rgb {
-				a = a.(*image.RGBA).SubImage(tc.psnrRect)
-				b = b.(*image.RGBA).SubImage(tc.psnrRect)
-			} else {
-				a = a.(*image.YCbCr).SubImage(tc.psnrRect)
-				b = b.(*image.YCbCr).SubImage(tc.psnrRect)
-			}
-		}
-		psnrs, err := Psnr(a, b)
-		expect(t, err, nil)
-		for i, v := range psnrs {
-			if v < tc.psnrs[i] {
-				t.Fatalf("invalid psnr %v < %v\n", v, tc.psnrs[i])
-			}
-		}
+		checkPsnrs(t, ref, src, tc.psnrRect, tc.psnrs)
 	}
 	if len(tc.dump) > 0 {
 		sb := src.Bounds()
