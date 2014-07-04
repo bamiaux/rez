@@ -155,9 +155,15 @@ func checkPsnrs(t *testing.T, ref, img image.Image, sub image.Rectangle, min []f
 		case *image.RGBA:
 			a = a.(*image.RGBA).SubImage(sub)
 			b = b.(*image.RGBA).SubImage(sub)
+		case *image.NRGBA:
+			a = a.(*image.NRGBA).SubImage(sub)
+			b = b.(*image.NRGBA).SubImage(sub)
 		case *image.YCbCr:
 			a = a.(*image.YCbCr).SubImage(sub)
 			b = b.(*image.YCbCr).SubImage(sub)
+		case *image.Gray:
+			a = a.(*image.Gray).SubImage(sub)
+			b = b.(*image.Gray).SubImage(sub)
 		}
 	}
 	psnrs, err := Psnr(a, b)
@@ -275,4 +281,34 @@ func TestSaturatedRightBorder(t *testing.T) {
 	tc.psnrs = []float64{16}
 	tc.psnrRect = image.Rect(280, 0, 286, 500)
 	runTestCase(t, tc, 1)
+}
+
+func TestGrayPlanes(t *testing.T) {
+	w, h := 256, 256
+	src := readImage(t, "testdata/gray.png")
+	ref := image.NewGray(src.Bounds())
+	err := Convert(ref, src, nil)
+	expect(t, err, nil)
+	raw := image.NewGray(image.Rect(0, 0, w*2, h*2))
+	dst := raw.SubImage(image.Rect(7, 7, 7+w, 7+h))
+	err = Convert(dst, src, NewBicubicFilter())
+	expect(t, err, nil)
+	err = Convert(src, dst, NewBicubicFilter())
+	expect(t, err, nil)
+	checkPsnrs(t, ref, src, image.Rectangle{}, []float64{38})
+}
+
+func TestNrgbaPlanes(t *testing.T) {
+	w, h := 256, 256
+	src := readImage(t, "testdata/nrgba.png")
+	ref := image.NewNRGBA(src.Bounds())
+	err := Convert(ref, src, nil)
+	expect(t, err, nil)
+	raw := image.NewNRGBA(image.Rect(0, 0, w*2, h*2))
+	dst := raw.SubImage(image.Rect(7, 7, 7+w, 7+h))
+	err = Convert(dst, src, NewBicubicFilter())
+	expect(t, err, nil)
+	err = Convert(src, dst, NewBicubicFilter())
+	expect(t, err, nil)
+	checkPsnrs(t, ref, src, image.Rectangle{}, []float64{39})
 }

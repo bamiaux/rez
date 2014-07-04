@@ -6,9 +6,8 @@
 Package rez provides image resizing for go.
 
 Featuring:
- - YCbCr resizes
+ - YCbCr, RGBA, NRGBA & Gray resizes
  - YCbCr Chroma subsample ratio conversions
- - RGB resizes
  - Optional interlaced-aware resizes
  - Parallel resizes
  - SSE2 optimisations on AMD64
@@ -298,27 +297,33 @@ func inspect(data image.Image, interlaced bool) (*Descriptor, []Plane, error) {
 		d, p := inspectYuv(t, interlaced)
 		return d, p, nil
 	case *image.RGBA:
-		d, p := inspectRgb(t, interlaced)
+		d, p := inspectRgba(t, interlaced)
+		return d, p, nil
+	case *image.NRGBA:
+		d, p := inspectNrgba(t, interlaced)
+		return d, p, nil
+	case *image.Gray:
+		d, p := inspectGray(t, interlaced)
 		return d, p, nil
 	}
 	return nil, nil, fmt.Errorf("unknown image format")
 }
 
-func getYuvDescriptor(yuv *image.YCbCr, interlaced bool) Descriptor {
+func getYuvDescriptor(img *image.YCbCr, interlaced bool) Descriptor {
 	return Descriptor{
-		Width:      yuv.Rect.Dx(),
-		Height:     yuv.Rect.Dy(),
-		Ratio:      GetRatio(yuv.SubsampleRatio),
+		Width:      img.Rect.Dx(),
+		Height:     img.Rect.Dy(),
+		Ratio:      GetRatio(img.SubsampleRatio),
 		Interlaced: interlaced,
 		Pack:       1,
 		Planes:     3,
 	}
 }
 
-func getRgbDescriptor(rgb *image.RGBA, interlaced bool) Descriptor {
+func getRgbDescriptor(rect image.Rectangle, interlaced bool) Descriptor {
 	return Descriptor{
-		Width:      rgb.Rect.Dx(),
-		Height:     rgb.Rect.Dy(),
+		Width:      rect.Dx(),
+		Height:     rect.Dy(),
 		Ratio:      Ratio444,
 		Interlaced: interlaced,
 		Pack:       4,
@@ -326,9 +331,25 @@ func getRgbDescriptor(rgb *image.RGBA, interlaced bool) Descriptor {
 	}
 }
 
-func getYuvPlanes(yuv *image.YCbCr, d *Descriptor) []Plane {
+func getGrayDescriptor(img *image.Gray, interlaced bool) Descriptor {
+	return Descriptor{
+		Width:      img.Rect.Dx(),
+		Height:     img.Rect.Dy(),
+		Ratio:      Ratio444,
+		Interlaced: interlaced,
+		Pack:       1,
+		Planes:     1,
+	}
+}
+
+func setPlane(p *Plane, rect image.Rectangle, offset func(x, y int) int, pix []byte) {
+	x, y := rect.Min.X, rect.Min.Y
+	base := offset(x, y)
+	p.Data = pix[base : base+p.Pitch*(p.Height-1)+p.Width*p.Pack]
+}
+
+func getYuvPlanes(img *image.YCbCr, d *Descriptor) []Plane {
 	planes := []Plane{}
-	x, y := yuv.Rect.Min.X, yuv.Rect.Min.Y
 	for i := 0; i < maxPlanes; i++ {
 		p := Plane{
 			Width:  d.GetWidth(i),
@@ -337,44 +358,61 @@ func getYuvPlanes(yuv *image.YCbCr, d *Descriptor) []Plane {
 		}
 		switch i {
 		case 0:
-			p.Pitch = yuv.YStride
-			base := yuv.YOffset(x, y)
-			p.Data = yuv.Y[base : base+p.Pitch*(p.Height-1)+p.Width]
+			p.Pitch = img.YStride
+			setPlane(&p, img.Rect, img.YOffset, img.Y)
 		case 1:
-			p.Pitch = yuv.CStride
-			base := yuv.COffset(x, y)
-			p.Data = yuv.Cb[base : base+p.Pitch*(p.Height-1)+p.Width]
+			p.Pitch = img.CStride
+			setPlane(&p, img.Rect, img.COffset, img.Cb)
 		case 2:
-			p.Pitch = yuv.CStride
-			base := yuv.COffset(x, y)
-			p.Data = yuv.Cr[base : base+p.Pitch*(p.Height-1)+p.Width]
+			p.Pitch = img.CStride
+			setPlane(&p, img.Rect, img.COffset, img.Cr)
 		}
 		planes = append(planes, p)
 	}
 	return planes
 }
 
-func getRgbPlane(rgb *image.RGBA, d *Descriptor) []Plane {
+func getSinglePlane(d *Descriptor, pitch int, rect image.Rectangle, offset func(x, y int) int, pix []byte) []Plane {
 	p := Plane{
 		Width:  d.Width,
 		Height: d.Height,
 		Pack:   d.Pack,
-		Pitch:  rgb.Stride,
+		Pitch:  pitch,
 	}
-	x, y := rgb.Rect.Min.X, rgb.Rect.Min.Y
-	base := rgb.PixOffset(x, y)
-	p.Data = rgb.Pix[base : base+p.Pitch*(p.Height-1)+p.Width*p.Pack]
+	setPlane(&p, rect, offset, pix)
 	return []Plane{p}
 }
 
-func inspectYuv(yuv *image.YCbCr, interlaced bool) (*Descriptor, []Plane) {
-	d := getYuvDescriptor(yuv, interlaced)
-	return &d, getYuvPlanes(yuv, &d)
+func getRgbaPlane(img *image.RGBA, d *Descriptor) []Plane {
+	return getSinglePlane(d, img.Stride, img.Rect, img.PixOffset, img.Pix)
 }
 
-func inspectRgb(rgb *image.RGBA, interlaced bool) (*Descriptor, []Plane) {
-	d := getRgbDescriptor(rgb, interlaced)
-	return &d, getRgbPlane(rgb, &d)
+func getNrgbaPlane(img *image.NRGBA, d *Descriptor) []Plane {
+	return getSinglePlane(d, img.Stride, img.Rect, img.PixOffset, img.Pix)
+}
+
+func getGrayPlane(img *image.Gray, d *Descriptor) []Plane {
+	return getSinglePlane(d, img.Stride, img.Rect, img.PixOffset, img.Pix)
+}
+
+func inspectYuv(img *image.YCbCr, interlaced bool) (*Descriptor, []Plane) {
+	d := getYuvDescriptor(img, interlaced)
+	return &d, getYuvPlanes(img, &d)
+}
+
+func inspectRgba(img *image.RGBA, interlaced bool) (*Descriptor, []Plane) {
+	d := getRgbDescriptor(img.Rect, interlaced)
+	return &d, getRgbaPlane(img, &d)
+}
+
+func inspectNrgba(img *image.NRGBA, interlaced bool) (*Descriptor, []Plane) {
+	d := getRgbDescriptor(img.Rect, interlaced)
+	return &d, getNrgbaPlane(img, &d)
+}
+
+func inspectGray(img *image.Gray, interlaced bool) (*Descriptor, []Plane) {
+	d := getGrayDescriptor(img, interlaced)
+	return &d, getGrayPlane(img, &d)
 }
 
 func resizePlane(group *sync.WaitGroup, threads int, dst, src, buf *Plane, hrez, wrez Resizer) {
