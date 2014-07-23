@@ -190,7 +190,7 @@ func runTestCase(t *testing.T, tc *TestCase, cycles int) {
 		dst = toRgb(dstRaw).SubImage(tc.dst)
 	} else {
 		src = srcRaw.SubImage(tc.src)
-		refRaw := image.NewYCbCr(srcRaw.Bounds(), srcRaw.SubsampleRatio)
+		refRaw := image.NewYCbCr(src.Bounds(), srcRaw.SubsampleRatio)
 		err := Convert(refRaw, src, nil)
 		expect(t, err, nil)
 		ref = refRaw.SubImage(tc.src)
@@ -311,4 +311,14 @@ func TestNrgbaPlanes(t *testing.T) {
 	err = Convert(src, dst, NewBicubicFilter())
 	expect(t, err, nil)
 	checkPsnrs(t, ref, src, image.Rectangle{}, []float64{39})
+}
+
+func TestBigKernels(t *testing.T) {
+	interlaced := []bool{false, true}
+	for _, ii := range interlaced {
+		tc := NewTestCase(256, 256, ii)
+		tc.src = image.Rect(0, 0, 32, 32)
+		tc.filter = NewLanczosFilter(128)
+		runTestCase(t, tc, 1)
+	}
 }
