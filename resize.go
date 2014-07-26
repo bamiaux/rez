@@ -17,6 +17,7 @@ type ResizerConfig struct {
 	Interlaced bool // true if input/output is interlaced
 	Pack       int  // pixels per pack [default=1]
 	Threads    int  // number of threads, [default=0]
+	DisableAsm bool // disable asm optimisations
 }
 
 // Resizer is a interface that implements resizes
@@ -37,40 +38,40 @@ type context struct {
 	scaler  scaler
 }
 
-func getHorizontalScaler(taps int) scaler {
+func getHorizontalScalerGo(taps int) scaler {
 	switch taps {
 	case 2:
-		return h8scale2
+		return h8scale2Go
 	case 4:
-		return h8scale4
+		return h8scale4Go
 	case 6:
-		return h8scale6
+		return h8scale6Go
 	case 8:
-		return h8scale8
+		return h8scale8Go
 	case 10:
-		return h8scale10
+		return h8scale10Go
 	case 12:
-		return h8scale12
+		return h8scale12Go
 	}
-	return h8scaleN
+	return h8scaleNGo
 }
 
-func getVerticalScaler(taps int) scaler {
+func getVerticalScalerGo(taps int) scaler {
 	switch taps {
 	case 2:
-		return v8scale2
+		return v8scale2Go
 	case 4:
-		return v8scale4
+		return v8scale4Go
 	case 6:
-		return v8scale6
+		return v8scale6Go
 	case 8:
-		return v8scale8
+		return v8scale8Go
 	case 10:
-		return v8scale10
+		return v8scale10Go
 	case 12:
-		return v8scale12
+		return v8scale12Go
 	}
-	return v8scaleN
+	return v8scaleNGo
 }
 
 // NewResize returns a new resizer
@@ -85,9 +86,9 @@ func NewResize(cfg *ResizerConfig, filter Filter) Resizer {
 		ctx.cfg.Pack = 1
 	}
 	ctx.kernels = []kernel{makeKernel(&ctx.cfg, filter, 0)}
-	ctx.scaler = getHorizontalScaler(ctx.kernels[0].size)
+	ctx.scaler = getHorizontalScaler(ctx.kernels[0].size, !cfg.DisableAsm)
 	if cfg.Vertical {
-		ctx.scaler = getVerticalScaler(ctx.kernels[0].size)
+		ctx.scaler = getVerticalScaler(ctx.kernels[0].size, !cfg.DisableAsm)
 		if cfg.Interlaced {
 			ctx.kernels = append(ctx.kernels, makeKernel(&ctx.cfg, filter, 1))
 		}

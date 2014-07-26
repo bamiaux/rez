@@ -11,7 +11,7 @@ DATA	hbits_1<>+0x00(SB)/8, $0x0000200000002000
 DATA	hbits_1<>+0x08(SB)/8, $0x0000200000002000
 GLOBL	hbits_1<>(SB), $16
 
-TEXT ·v8scale2(SB),4,$0-136
+TEXT ·v8scale2Amd64(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -177,7 +177,7 @@ nobackroll_4:
 		JNE	yloop_1
 		RET
 
-TEXT ·v8scale4(SB),4,$0-136
+TEXT ·v8scale4Amd64(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -333,7 +333,7 @@ nobackroll_9:
 		JNE	yloop_6
 		RET
 
-TEXT ·v8scale6(SB),4,$0-136
+TEXT ·v8scale6Amd64(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -531,7 +531,7 @@ nobackroll_14:
 		JNE	yloop_11
 		RET
 
-TEXT ·v8scale8(SB),4,$0-136
+TEXT ·v8scale8Amd64(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -769,7 +769,7 @@ nobackroll_19:
 		JNE	yloop_16
 		RET
 
-TEXT ·v8scale10(SB),4,$0-136
+TEXT ·v8scale10Amd64(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -1047,7 +1047,7 @@ nobackroll_24:
 		JNE	yloop_21
 		RET
 
-TEXT ·v8scale12(SB),4,$0-136
+TEXT ·v8scale12Amd64(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -1365,7 +1365,7 @@ nobackroll_29:
 		JNE	yloop_26
 		RET
 
-TEXT ·v8scaleN(SB),4,$0-136
+TEXT ·v8scaleNAmd64(SB),4,$0-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX

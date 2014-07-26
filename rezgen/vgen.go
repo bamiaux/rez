@@ -53,7 +53,7 @@ func (v *vertical) genscale(a *Asm, taps int) {
 	if taps > 0 {
 		suffix = fmt.Sprintf("%v", taps)
 	}
-	a.NewFunction("v8scale" + suffix)
+	a.NewFunction("v8scale" + suffix + "Amd64")
 	// arguments
 	v.dst = a.SliceArgument("dst")
 	v.src = a.SliceArgument("src")

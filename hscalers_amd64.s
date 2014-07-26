@@ -14,7 +14,7 @@ DATA	u8max_2<>+0x00(SB)/8, $0x00000000000000FF
 DATA	u8max_2<>+0x08(SB)/8, $0x00000000000000FF
 GLOBL	u8max_2<>(SB), $16
 
-TEXT ·h8scale2(SB),4,$40-136
+TEXT ·h8scale2Amd64(SB),4,$40-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -131,7 +131,7 @@ end_4:
 		JNE	yloop_0
 		RET
 
-TEXT ·h8scale4(SB),4,$40-136
+TEXT ·h8scale4Amd64(SB),4,$40-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -290,7 +290,7 @@ end_9:
 		JNE	yloop_5
 		RET
 
-TEXT ·h8scale8(SB),4,$40-136
+TEXT ·h8scale8Amd64(SB),4,$40-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -509,7 +509,7 @@ end_14:
 		JNE	yloop_10
 		RET
 
-TEXT ·h8scale10(SB),4,$40-136
+TEXT ·h8scale10Amd64(SB),4,$40-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -853,7 +853,7 @@ end_19:
 		JNE	yloop_15
 		RET
 
-TEXT ·h8scale12(SB),4,$40-136
+TEXT ·h8scale12Amd64(SB),4,$40-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX
@@ -1253,7 +1253,7 @@ end_24:
 		JNE	yloop_20
 		RET
 
-TEXT ·h8scaleN(SB),4,$64-136
+TEXT ·h8scaleNAmd64(SB),4,$64-136
 		MOVQ	dp+120(FP), BX
 		MOVQ	width+104(FP), CX
 		MOVQ	CX, DX

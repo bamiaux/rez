@@ -62,7 +62,7 @@ func (h *horizontal) genscale(a *Asm, taps int) {
 	if taps > 0 {
 		suffix = fmt.Sprintf("%v", taps)
 	}
-	a.NewFunction("h8scale" + suffix)
+	a.NewFunction("h8scale" + suffix + "Amd64")
 	// arguments
 	h.dst = a.SliceArgument("dst")
 	h.src = a.SliceArgument("src")

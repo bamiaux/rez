@@ -49,19 +49,20 @@ func writeImage(t Tester, name string, img image.Image) {
 	expect(t, err, nil)
 }
 
-func prepare(t Tester, dst, src image.Image, interlaced bool, filter Filter, threads int) Converter {
+func prepare(t Tester, dst, src image.Image, asm, interlaced bool, filter Filter, threads int) Converter {
 	cfg, err := PrepareConversion(dst, src)
 	expect(t, err, nil)
 	cfg.Input.Interlaced = interlaced
 	cfg.Output.Interlaced = interlaced
 	cfg.Threads = threads
+	cfg.DisableAsm = !asm
 	converter, err := NewConverter(cfg, filter)
 	expect(t, err, nil)
 	return converter
 }
 
-func convert(t Tester, dst, src image.Image, interlaced bool, filter Filter) {
-	converter := prepare(t, dst, src, interlaced, filter, 0)
+func convert(t Tester, dst, src image.Image, asm, interlaced bool, filter Filter) {
+	converter := prepare(t, dst, src, asm, interlaced, filter, 0)
 	err := converter.Convert(dst, src)
 	expect(t, err, nil)
 }
@@ -176,6 +177,7 @@ func checkPsnrs(t *testing.T, ref, img image.Image, sub image.Rectangle, min []f
 }
 
 func runTestCase(t *testing.T, tc *TestCase, cycles int) {
+	asm := true
 	srcRaw := readImage(t, "testdata/"+tc.file).(*image.YCbCr)
 	dstRaw := image.NewYCbCr(image.Rect(0, 0, tc.dst.Max.X*2, tc.dst.Max.Y*2), srcRaw.SubsampleRatio)
 	var src, dst, ref image.Image
@@ -196,8 +198,8 @@ func runTestCase(t *testing.T, tc *TestCase, cycles int) {
 		ref = refRaw.SubImage(tc.src)
 		dst = dstRaw.SubImage(tc.dst)
 	}
-	fwd := prepare(t, dst, src, tc.interlaced, tc.filter, tc.threads)
-	bwd := prepare(t, src, dst, tc.interlaced, tc.filter, tc.threads)
+	fwd := prepare(t, dst, src, asm, tc.interlaced, tc.filter, tc.threads)
+	bwd := prepare(t, src, dst, asm, tc.interlaced, tc.filter, tc.threads)
 	for i := 0; i < cycles; i++ {
 		err := fwd.Convert(dst, src)
 		expect(t, err, nil)
@@ -210,9 +212,13 @@ func runTestCase(t *testing.T, tc *TestCase, cycles int) {
 	if len(tc.dump) > 0 {
 		sb := src.Bounds()
 		db := dst.Bounds()
-		name := fmt.Sprintf("testdata/%v-%vx%v-%vx%v-%v-%v-%v.png",
+		asmSuffix := "go"
+		if asm {
+			asmSuffix = "asm"
+		}
+		name := fmt.Sprintf("testdata/%v-%vx%v-%vx%v-%v-%v-%v-%v.png",
 			tc.dump, sb.Dx(), sb.Dy(), db.Dx(), db.Dy(), suffix,
-			toInterlacedString(tc.interlaced), tc.filter.Name())
+			toInterlacedString(tc.interlaced), asmSuffix, tc.filter.Name())
 		writeImage(t, name, src)
 	}
 }
@@ -234,7 +240,8 @@ func testInterlacedFailWith(t *testing.T, rgb bool) {
 		src = toRgb(src)
 		dst = toRgb(dst)
 	}
-	convert(t, dst, src, true, NewBicubicFilter())
+	convert(t, dst, src, false, true, NewBicubicFilter())
+	convert(t, dst, src, true, true, NewBicubicFilter())
 }
 
 func TestInterlacedFail(t *testing.T) {

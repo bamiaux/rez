@@ -125,9 +125,10 @@ func (d *Descriptor) GetHeight(plane int) int {
 
 // ConverterConfig is a configuration used with NewConverter
 type ConverterConfig struct {
-	Input   Descriptor // input description
-	Output  Descriptor // output description
-	Threads int        // number of allowed "threads"
+	Input      Descriptor // input description
+	Output     Descriptor // output description
+	Threads    int        // number of allowed "threads"
+	DisableAsm bool       // disable asm optimisations
 }
 
 const (
@@ -230,6 +231,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 					Interlaced: false,
 					Pack:       cfg.Input.Pack,
 					Threads:    threads,
+					DisableAsm: cfg.DisableAsm,
 				}, filter)
 			})
 		}
@@ -247,6 +249,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 					Interlaced: cfg.Output.Interlaced,
 					Pack:       cfg.Output.Pack,
 					Threads:    threads,
+					DisableAsm: cfg.DisableAsm,
 				}, filter)
 			})
 		}

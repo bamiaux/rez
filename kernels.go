@@ -45,7 +45,7 @@ func makeDoubleKernel(cfg *ResizerConfig, filter Filter, field, idx uint) ([]int
 	step := math.Min(1, scale)
 	support := float64(filter.Taps()) / step
 	taps := int(math.Ceil(support)) * 2
-	if !cfg.Vertical && taps == 6 && hasAsm() {
+	if !cfg.Vertical && taps == 6 && hasAsm() && !cfg.DisableAsm {
 		taps = 8
 	}
 	taps = min(taps, cfg.Input>>field)
@@ -141,7 +141,7 @@ func makeKernel(cfg *ResizerConfig, filter Filter, idx uint) kernel {
 }
 
 func prepareCoeffs(cfg *ResizerConfig, cof []int16, size, taps int) ([]int16, int) {
-	if !hasAsm() {
+	if !hasAsm() || cfg.DisableAsm {
 		return cof, 1
 	}
 	if cfg.Vertical {

@@ -33,12 +33,12 @@ var (
 	}
 )
 
-func benchSpeed(b *testing.B, bt BenchType) {
+func benchSpeed(b *testing.B, bt BenchType, asm bool) {
 	raw := readImage(b, "testdata/lenna.jpg")
 	src := image.NewYCbCr(image.Rect(0, 0, bt.win, bt.hin), image.YCbCrSubsampleRatio420)
-	convert(b, src, raw, bt.interlaced, bt.filter)
+	convert(b, src, raw, asm, bt.interlaced, bt.filter)
 	dst := image.NewYCbCr(image.Rect(0, 0, bt.wout, bt.hout), image.YCbCrSubsampleRatio420)
-	converter := prepare(b, dst, src, bt.interlaced, bt.filter, 0)
+	converter := prepare(b, dst, src, asm, bt.interlaced, bt.filter, 0)
 	b.SetBytes(int64(bt.wout*bt.hout*3) >> 1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -46,18 +46,27 @@ func benchSpeed(b *testing.B, bt BenchType) {
 	}
 }
 
-func BenchmarkImageBilinearUp(b *testing.B)   { benchSpeed(b, benchs[0]) }
-func BenchmarkImageBicubicUp(b *testing.B)    { benchSpeed(b, benchs[1]) }
-func BenchmarkImageLanczosUp(b *testing.B)    { benchSpeed(b, benchs[2]) }
-func BenchmarkImageBilinearDown(b *testing.B) { benchSpeed(b, benchs[3]) }
-func BenchmarkImageBicubicDown(b *testing.B)  { benchSpeed(b, benchs[4]) }
-func BenchmarkImageLanczosDown(b *testing.B)  { benchSpeed(b, benchs[5]) }
-func BenchmarkImageBicubicIUp(b *testing.B)   { benchSpeed(b, benchs[6]) }
-func BenchmarkImageBicubicIDown(b *testing.B) { benchSpeed(b, benchs[7]) }
-func BenchmarkCopy(b *testing.B)              { benchSpeed(b, benchs[8]) }
-func BenchmarkImageBicubicRgb(b *testing.B)   { benchSpeed(b, benchs[9]) }
+func BenchmarkImageBilinearUpGo(b *testing.B)    { benchSpeed(b, benchs[0], false) }
+func BenchmarkImageBilinearUpAsm(b *testing.B)   { benchSpeed(b, benchs[0], true) }
+func BenchmarkImageBicubicUpGo(b *testing.B)     { benchSpeed(b, benchs[1], false) }
+func BenchmarkImageBicubicUpAsm(b *testing.B)    { benchSpeed(b, benchs[1], true) }
+func BenchmarkImageLanczosUpGo(b *testing.B)     { benchSpeed(b, benchs[2], false) }
+func BenchmarkImageLanczosUpAsm(b *testing.B)    { benchSpeed(b, benchs[2], true) }
+func BenchmarkImageBilinearDownGo(b *testing.B)  { benchSpeed(b, benchs[3], false) }
+func BenchmarkImageBilinearDownAsm(b *testing.B) { benchSpeed(b, benchs[3], true) }
+func BenchmarkImageBicubicDownGo(b *testing.B)   { benchSpeed(b, benchs[4], false) }
+func BenchmarkImageBicubicDownAsm(b *testing.B)  { benchSpeed(b, benchs[4], true) }
+func BenchmarkImageLanczosDownGo(b *testing.B)   { benchSpeed(b, benchs[5], false) }
+func BenchmarkImageLanczosDownAsm(b *testing.B)  { benchSpeed(b, benchs[5], true) }
+func BenchmarkImageBicubicIUpGo(b *testing.B)    { benchSpeed(b, benchs[6], false) }
+func BenchmarkImageBicubicIUpAsm(b *testing.B)   { benchSpeed(b, benchs[6], true) }
+func BenchmarkImageBicubicIDownGo(b *testing.B)  { benchSpeed(b, benchs[7], false) }
+func BenchmarkImageBicubicIDownAsm(b *testing.B) { benchSpeed(b, benchs[7], true) }
+func BenchmarkImageBicubicRgbGo(b *testing.B)    { benchSpeed(b, benchs[9], false) }
+func BenchmarkImageBicubicRgbAsm(b *testing.B)   { benchSpeed(b, benchs[9], true) }
+func BenchmarkCopy(b *testing.B)                 { benchSpeed(b, benchs[8], false) }
 
-func benchScaler(b *testing.B, vertical bool, taps int) {
+func benchScaler(b *testing.B, asm, vertical bool, taps int) {
 	n := 96
 	src := make([]byte, n*n)
 	dst := make([]byte, n*n*2)
@@ -67,6 +76,7 @@ func benchScaler(b *testing.B, vertical bool, taps int) {
 		Vertical:   vertical,
 		Interlaced: false,
 		Threads:    1,
+		DisableAsm: !asm,
 	}
 	dp := n
 	if !vertical {
@@ -81,17 +91,31 @@ func benchScaler(b *testing.B, vertical bool, taps int) {
 }
 
 // synthetic benchmarks
-func BenchmarkVerticalScaler2(b *testing.B)    { benchScaler(b, true, 2) }
-func BenchmarkVerticalScaler4(b *testing.B)    { benchScaler(b, true, 4) }
-func BenchmarkVerticalScaler6(b *testing.B)    { benchScaler(b, true, 6) }
-func BenchmarkVerticalScaler8(b *testing.B)    { benchScaler(b, true, 8) }
-func BenchmarkVerticalScaler10(b *testing.B)   { benchScaler(b, true, 10) }
-func BenchmarkVerticalScaler12(b *testing.B)   { benchScaler(b, true, 12) }
-func BenchmarkVerticalScalerN(b *testing.B)    { benchScaler(b, true, 14) }
-func BenchmarkHorizontalScaler2(b *testing.B)  { benchScaler(b, false, 2) }
-func BenchmarkHorizontalScaler4(b *testing.B)  { benchScaler(b, false, 4) }
-func BenchmarkHorizontalScaler6(b *testing.B)  { benchScaler(b, false, 6) }
-func BenchmarkHorizontalScaler8(b *testing.B)  { benchScaler(b, false, 8) }
-func BenchmarkHorizontalScaler10(b *testing.B) { benchScaler(b, false, 10) }
-func BenchmarkHorizontalScaler12(b *testing.B) { benchScaler(b, false, 12) }
-func BenchmarkHorizontalScalerN(b *testing.B)  { benchScaler(b, false, 14) }
+func BenchmarkVerticalScaler2Go(b *testing.B)     { benchScaler(b, false, true, 2) }
+func BenchmarkVerticalScaler2Asm(b *testing.B)    { benchScaler(b, true, true, 2) }
+func BenchmarkVerticalScaler4Go(b *testing.B)     { benchScaler(b, false, true, 4) }
+func BenchmarkVerticalScaler4Asm(b *testing.B)    { benchScaler(b, true, true, 4) }
+func BenchmarkVerticalScaler6Go(b *testing.B)     { benchScaler(b, false, true, 6) }
+func BenchmarkVerticalScaler6Asm(b *testing.B)    { benchScaler(b, true, true, 6) }
+func BenchmarkVerticalScaler8Go(b *testing.B)     { benchScaler(b, false, true, 8) }
+func BenchmarkVerticalScaler8Asm(b *testing.B)    { benchScaler(b, true, true, 8) }
+func BenchmarkVerticalScaler10Go(b *testing.B)    { benchScaler(b, false, true, 10) }
+func BenchmarkVerticalScaler10Asm(b *testing.B)   { benchScaler(b, true, true, 10) }
+func BenchmarkVerticalScaler12Go(b *testing.B)    { benchScaler(b, false, true, 12) }
+func BenchmarkVerticalScaler12Asm(b *testing.B)   { benchScaler(b, true, true, 12) }
+func BenchmarkVerticalScalerNGo(b *testing.B)     { benchScaler(b, false, true, 14) }
+func BenchmarkVerticalScalerNAsm(b *testing.B)    { benchScaler(b, true, true, 14) }
+func BenchmarkHorizontalScaler2Go(b *testing.B)   { benchScaler(b, false, false, 2) }
+func BenchmarkHorizontalScaler2Asm(b *testing.B)  { benchScaler(b, true, false, 2) }
+func BenchmarkHorizontalScaler4Go(b *testing.B)   { benchScaler(b, false, false, 4) }
+func BenchmarkHorizontalScaler4Asm(b *testing.B)  { benchScaler(b, true, false, 4) }
+func BenchmarkHorizontalScaler6Go(b *testing.B)   { benchScaler(b, false, false, 6) }
+func BenchmarkHorizontalScaler6Asm(b *testing.B)  { benchScaler(b, true, false, 6) }
+func BenchmarkHorizontalScaler8Go(b *testing.B)   { benchScaler(b, false, false, 8) }
+func BenchmarkHorizontalScaler8Asm(b *testing.B)  { benchScaler(b, true, false, 8) }
+func BenchmarkHorizontalScaler10Go(b *testing.B)  { benchScaler(b, false, false, 10) }
+func BenchmarkHorizontalScaler10Asm(b *testing.B) { benchScaler(b, true, false, 10) }
+func BenchmarkHorizontalScaler12Go(b *testing.B)  { benchScaler(b, false, false, 12) }
+func BenchmarkHorizontalScaler12Asm(b *testing.B) { benchScaler(b, true, false, 12) }
+func BenchmarkHorizontalScalerNGo(b *testing.B)   { benchScaler(b, false, false, 14) }
+func BenchmarkHorizontalScalerNAsm(b *testing.B)  { benchScaler(b, true, false, 14) }
