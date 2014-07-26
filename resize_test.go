@@ -176,8 +176,7 @@ func checkPsnrs(t *testing.T, ref, img image.Image, sub image.Rectangle, min []f
 	}
 }
 
-func runTestCase(t *testing.T, tc *TestCase, cycles int) {
-	asm := true
+func runTestCaseWith(t *testing.T, tc *TestCase, asm bool, cycles int) image.Image {
 	srcRaw := readImage(t, "testdata/"+tc.file).(*image.YCbCr)
 	dstRaw := image.NewYCbCr(image.Rect(0, 0, tc.dst.Max.X*2, tc.dst.Max.Y*2), srcRaw.SubsampleRatio)
 	var src, dst, ref image.Image
@@ -220,6 +219,18 @@ func runTestCase(t *testing.T, tc *TestCase, cycles int) {
 			tc.dump, sb.Dx(), sb.Dy(), db.Dx(), db.Dy(), suffix,
 			toInterlacedString(tc.interlaced), asmSuffix, tc.filter.Name())
 		writeImage(t, name, src)
+	}
+	return src
+}
+
+func runTestCase(t *testing.T, tc *TestCase, cycles int) {
+	noasm := runTestCaseWith(t, tc, false, cycles)
+	if !hasAsm() {
+		return
+	}
+	asm := runTestCaseWith(t, tc, true, cycles)
+	if true {
+		checkPsnrs(t, noasm, asm, image.Rectangle{}, []float64{math.Inf(1), math.Inf(1), math.Inf(1)})
 	}
 }
 
