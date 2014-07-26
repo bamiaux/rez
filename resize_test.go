@@ -224,11 +224,11 @@ func runTestCaseWith(t *testing.T, tc *TestCase, asm bool, cycles int) image.Ima
 }
 
 func runTestCase(t *testing.T, tc *TestCase, cycles int) {
-	noasm := runTestCaseWith(t, tc, false, cycles)
-	if !hasAsm() {
+	asm := runTestCaseWith(t, tc, true, cycles)
+	if !hasAsm() || testing.Short() {
 		return
 	}
-	asm := runTestCaseWith(t, tc, true, cycles)
+	noasm := runTestCaseWith(t, tc, false, cycles)
 	if true {
 		checkPsnrs(t, noasm, asm, image.Rectangle{}, []float64{math.Inf(1), math.Inf(1), math.Inf(1)})
 	}
@@ -293,6 +293,9 @@ func TestTooManyThreads(t *testing.T) {
 }
 
 func TestSmallSizes(t *testing.T) {
+	if testing.Short() {
+		return
+	}
 	interlaced := []bool{false, true}
 	// we need at least 2 taps per pixel, so 4 pixels in 4:2:0
 	for w := 4; w < 24; w++ {
