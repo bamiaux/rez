@@ -81,8 +81,11 @@ func (d *Descriptor) Check() error {
 	if d.Pack < 1 || d.Pack > 4 {
 		return fmt.Errorf("invalid pack value %v", d.Pack)
 	}
-	if d.Interlaced && d.Height%2 != 0 {
-		return fmt.Errorf("invalid height %v", d.Height)
+	for i := 0; i < d.Planes; i++ {
+		h := d.GetHeight(i)
+		if d.Interlaced && h%2 != 0 && h != d.Height {
+			return fmt.Errorf("invalid interlaced input height %v", d.Height)
+		}
 	}
 	return nil
 }
@@ -118,7 +121,11 @@ func (d *Descriptor) GetHeight(plane int) int {
 	case Ratio411, Ratio422, Ratio444:
 		return d.Height
 	case Ratio420, Ratio440:
-		return (d.Height + 1) >> 1
+		h := (d.Height + 1) >> 1
+		if d.Interlaced && h&1 != 0 {
+			h++
+		}
+		return h
 	}
 	panic(fmt.Errorf("invalid ratio %v", d.Ratio))
 }
@@ -219,6 +226,12 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 		hin := cfg.Input.GetHeight(i)
 		wout := cfg.Output.GetWidth(i)
 		hout := cfg.Output.GetHeight(i)
+		if win < 2 || hin < 2 {
+			return nil, fmt.Errorf("input size too small %vx%v", win, hin)
+		}
+		if wout < 2 || hout < 2 {
+			return nil, fmt.Errorf("output size too small %vx%v", wout, hout)
+		}
 		idx := i
 		if win != wout {
 			dispatch(&group, cfg.Threads, func() {
@@ -231,7 +244,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 					Interlaced: false,
 					Pack:       cfg.Input.Pack,
 					Threads:    threads,
-					DisableAsm: cfg.DisableAsm,
+					DisableAsm: cfg.DisableAsm || wout < 16,
 				}, filter)
 			})
 		}
@@ -249,7 +262,7 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 					Interlaced: cfg.Output.Interlaced,
 					Pack:       cfg.Output.Pack,
 					Threads:    threads,
-					DisableAsm: cfg.DisableAsm,
+					DisableAsm: cfg.DisableAsm || wout < 16 || win < 16,
 				}, filter)
 			})
 		}

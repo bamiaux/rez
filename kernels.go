@@ -48,7 +48,7 @@ func makeDoubleKernel(cfg *ResizerConfig, filter Filter, field, idx uint) ([]int
 	if !cfg.Vertical && taps == 6 && hasAsm() && !cfg.DisableAsm {
 		taps = 8
 	}
-	taps = min(taps, cfg.Input>>field)
+	taps = min(taps, (cfg.Input>>field)&^1)
 	offsets := make([]int16, cfg.Output)
 	sums := make([]float64, cfg.Output)
 	weights := make([]float64, cfg.Output*taps)

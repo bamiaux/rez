@@ -281,6 +281,22 @@ func TestTooManyThreads(t *testing.T) {
 	}
 }
 
+func TestSmallSizes(t *testing.T) {
+	interlaced := []bool{false, true}
+	// we need at least 2 taps per pixel, so 4 pixels in 4:2:0
+	for w := 4; w < 24; w++ {
+		for _, ii := range interlaced {
+			// we need at least 2 taps per field/pixel
+			// so 4/8 pixels with 4:2:0 progressive/interlaced
+			for h := 4 + int(bin(ii))*4; h < 24; h++ {
+				tc := NewTestCase(w, h, ii)
+				tc.src = image.Rect(0, 0, 32, 32)
+				runTestCase(t, tc, 1)
+			}
+		}
+	}
+}
+
 func TestSaturatedRightBorder(t *testing.T) {
 	tc := NewTestCase(171, 500, false)
 	tc.file = "bug3img.jpg"
