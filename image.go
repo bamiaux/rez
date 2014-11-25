@@ -2,6 +2,8 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:generate autoreadme -f -template=README.md.template
+
 /*
 Package rez provides image resizing in pure Go and SIMD.
 
