@@ -3,14 +3,14 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package rez provides image resizing for go.
+Package rez provides image resizing in pure Go and SIMD.
 
 Featuring:
  - YCbCr, RGBA, NRGBA & Gray resizes
  - YCbCr Chroma subsample ratio conversions
  - Optional interlaced-aware resizes
  - Parallel resizes
- - SSE2 optimisations on AMD64
+ - SIMD optimisations on AMD64
 
 The easiest way to use it is:
 
