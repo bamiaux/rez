@@ -6,10 +6,10 @@
 
 DATA	zero_0<>+0x00(SB)/8, $0x0000000000000000
 DATA	zero_0<>+0x08(SB)/8, $0x0000000000000000
-GLOBL	zero_0<>(SB), $16
+GLOBL	zero_0<>(SB), 8, $16
 DATA	hbits_1<>+0x00(SB)/8, $0x0000200000002000
 DATA	hbits_1<>+0x08(SB)/8, $0x0000200000002000
-GLOBL	hbits_1<>(SB), $16
+GLOBL	hbits_1<>(SB), 8, $16
 
 TEXT ·v8scale2Amd64(SB),4,$0-136
 		MOVQ	dp+120(FP), BX

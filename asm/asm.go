@@ -43,7 +43,10 @@ func (a *Asm) Data(name string, data []byte) Operand {
 	for i := 0; i < len(data); i += 8 {
 		a.write(fmt.Sprintf("DATA\t%v+0x%02X(SB)/8, $0x%016X", name, i, data[i:i+8]))
 	}
-	a.write(fmt.Sprintf("GLOBL\t%v(SB), $%v", name, len(data)))
+	// RODATA should be included with textflag.h
+	// it only works with go > 1.4 though
+	const RODATA = 8
+	a.write(fmt.Sprintf("GLOBL\t%v(SB), %v, $%v", name, RODATA, len(data)))
 	return literal(fmt.Sprintf("%v(SB)", name))
 }
 
