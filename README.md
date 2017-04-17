@@ -1,4 +1,4 @@
-#rez [![GoDoc](https://godoc.org/github.com/bamiaux/rez/web?status.png)](https://godoc.org/github.com/bamiaux/rez) [![Build Status](https://travis-ci.org/bamiaux/rez.png)](https://travis-ci.org/bamiaux/rez)
+# rez [![GoDoc](https://godoc.org/github.com/bamiaux/rez/web?status.png)](https://godoc.org/github.com/bamiaux/rez) [![Build Status](https://travis-ci.org/bamiaux/rez.png)](https://travis-ci.org/bamiaux/rez)
 Package rez provides image resizing in pure Go and SIMD.
 
 Download:
