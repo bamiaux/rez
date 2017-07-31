@@ -56,8 +56,10 @@ type Converter interface {
 type ChromaRatio int
 
 const (
+	// Ratio410 is 4:1:0
+	Ratio410 ChromaRatio = iota
 	// Ratio411 is 4:1:1
-	Ratio411 ChromaRatio = iota
+	Ratio411
 	// Ratio420 is 4:2:0
 	Ratio420
 	// Ratio422 is 4:2:2
@@ -101,7 +103,7 @@ func (d *Descriptor) GetWidth(plane int) int {
 		return d.Width
 	}
 	switch d.Ratio {
-	case Ratio411:
+	case Ratio410, Ratio411:
 		return (d.Width + 3) >> 2
 	case Ratio420, Ratio422:
 		return (d.Width + 1) >> 1
@@ -122,7 +124,7 @@ func (d *Descriptor) GetHeight(plane int) int {
 	switch d.Ratio {
 	case Ratio411, Ratio422, Ratio444:
 		return d.Height
-	case Ratio420, Ratio440:
+	case Ratio410, Ratio420, Ratio440:
 		h := (d.Height + 1) >> 1
 		if d.Interlaced && h&1 != 0 {
 			h++
@@ -297,6 +299,10 @@ func NewConverter(cfg *ConverterConfig, filter Filter) (Converter, error) {
 // GetRatio returns a ChromaRatio from an image.YCbCrSubsampleRatio
 func GetRatio(value image.YCbCrSubsampleRatio) ChromaRatio {
 	switch value {
+	case image.YCbCrSubsampleRatio410:
+		return Ratio410
+	case image.YCbCrSubsampleRatio411:
+		return Ratio411
 	case image.YCbCrSubsampleRatio420:
 		return Ratio420
 	case image.YCbCrSubsampleRatio422:
